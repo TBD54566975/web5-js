@@ -624,7 +624,7 @@ function shouldUseDelegatePermission(scope: DwnPermissionScope): boolean {
  */
 async function createPermissionGrants(
   selectedDid: string,
-  delegateBearerDid: BearerDid,
+  delegatedPortableDid: PortableDid,
   agent: Web5Agent,
   scopes: DwnPermissionScope[],
 ) {
@@ -639,7 +639,7 @@ async function createPermissionGrants(
       return permissionsApi.createGrant({
         delegated,
         store       : true,
-        grantedTo   : delegateBearerDid.uri,
+        grantedTo   : delegatedPortableDid.uri,
         scope,
         dateExpires : '2040-06-25T16:09:16.693356Z', // TODO: make dateExpires optional
         author      : selectedDid,
@@ -745,6 +745,36 @@ async function prepareProtocol(
   }
 }
 
+async function createAuthResponseGrants(
+  delegatedPortableDid: PortableDid,
+  selectedDid: string,
+  permissionRequests: ConnectPermissionRequest[],
+  agent: Web5Agent
+) {
+    // TODO: roll back permissions and protocol configurations if an error occurs. Need a way to delete protocols to achieve this.
+    const processGrant = async (permissionRequest: ConnectPermissionRequest): Promise<DwnDataEncodedRecordsWriteMessage[]> => {
+      const { protocolDefinition, permissionScopes } = permissionRequest;
+    
+      // We validate that all permission scopes match the protocol uri of the protocol definition they are provided with.
+      const grantsMatchProtocolUri = permissionScopes.every(scope => 'protocol' in scope && scope.protocol === protocolDefinition.protocol);
+      if (!grantsMatchProtocolUri) {
+        throw new Error('All permission scopes must match the protocol uri they are provided with.');
+      }
+    
+      await prepareProtocol(selectedDid, agent, protocolDefinition);
+    
+      return await Oidc.createPermissionGrants(
+        selectedDid,
+        delegatedPortableDid,
+        agent,
+        permissionScopes
+      );
+    };
+
+   const delegateGrants = await Promise.all(permissionRequests.map(processGrant));
+   return delegateGrants .flat();
+}
+
 /**
  * Creates a delegate did which the web app will use as its future indentity.
  * Assigns to that DID the level of permissions that the web app requested in
@@ -758,36 +788,10 @@ async function submitAuthResponse(
   selectedDid: string,
   authRequest: Web5ConnectAuthRequest,
   randomPin: string,
-  agent: Web5Agent
+  delegateBearerDid: BearerDid,
+  delegateGrants: DwnDataEncodedRecordsWriteMessage[]
 ) {
-  const delegateBearerDid = await DidJwk.create();
   const delegatePortableDid = await delegateBearerDid.export();
-
-  // TODO: roll back permissions and protocol configurations if an error occurs. Need a way to delete protocols to achieve this.
-  const delegateGrantPromises = authRequest.permissionRequests.map(
-    async (permissionRequest) => {
-      const { protocolDefinition, permissionScopes } = permissionRequest;
-
-      // We validate that all permission scopes match the protocol uri of the protocol definition they are provided with.
-      const grantsMatchProtocolUri = permissionScopes.every(scope => 'protocol' in scope && scope.protocol === protocolDefinition.protocol);
-      if (!grantsMatchProtocolUri) {
-        throw new Error('All permission scopes must match the protocol uri they are provided with.');
-      }
-
-      await prepareProtocol(selectedDid, agent, protocolDefinition);
-
-      const permissionGrants = await Oidc.createPermissionGrants(
-        selectedDid,
-        delegateBearerDid,
-        agent,
-        permissionScopes
-      );
-
-      return permissionGrants;
-    }
-  );
-
-  const delegateGrants = (await Promise.all(delegateGrantPromises)).flat();
 
   logger.log('Generating auth response object...');
   const responseObject = await Oidc.createResponseObject({
@@ -853,5 +857,6 @@ export const Oidc = {
   verifyJwt,
   buildOidcUrl,
   generateCodeChallenge,
+  createAuthResponseGrants,
   submitAuthResponse,
 };

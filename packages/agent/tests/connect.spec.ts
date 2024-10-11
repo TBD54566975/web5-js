@@ -363,7 +363,6 @@ describe('web5 connect', function () {
     it('should send the encrypted jwe authresponse to the server', async () => {
       sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
       sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
-      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
 
       const formEncodedRequest = new URLSearchParams({
         id_token : authResponseJwe,
@@ -388,11 +387,23 @@ describe('web5 connect', function () {
       );
 
       const selectedDid = providerIdentity.did.uri;
+
+      // generate the DID
+      const delegatePortableDid = await delegateBearerDid.export();
+
+      const delegatedGrants = await Oidc.createAuthResponseGrants(
+        delegatePortableDid,
+        selectedDid,
+        authRequest.permissionRequests,
+        testHarness.agent
+      );
+
       await Oidc.submitAuthResponse(
         selectedDid,
         authRequest,
         randomPin,
-        testHarness.agent
+        delegateBearerDid,
+        delegatedGrants
       );
       expect(fetchSpy.calledOnce).to.be.true;
     });
@@ -499,7 +510,6 @@ describe('web5 connect', function () {
 
       sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
       sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
-      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
 
       const callbackUrl = Oidc.buildOidcUrl({
         baseURL  : 'http://localhost:3000',
@@ -530,12 +540,22 @@ describe('web5 connect', function () {
         .stub(testHarness.agent, 'processDwnRequest')
         .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' }, entries: [ protocolMessage ]} });
 
+      const delegatePortableDid = await delegateBearerDid.export();
+
+      const delegatedGrants = await Oidc.createAuthResponseGrants(
+        delegatePortableDid,
+        providerIdentity.did.uri,
+        authRequest.permissionRequests,
+        testHarness.agent
+      );
+
       // call submitAuthResponse
       await Oidc.submitAuthResponse(
         providerIdentity.did.uri,
         authRequest,
         randomPin,
-        testHarness.agent
+        delegateBearerDid,
+        delegatedGrants
       );
 
       // expect the process request to only be called once for ProtocolsQuery
@@ -555,7 +575,6 @@ describe('web5 connect', function () {
 
       sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
       sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
-      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
 
       const callbackUrl = Oidc.buildOidcUrl({
         baseURL  : 'http://localhost:3000',
@@ -583,12 +602,23 @@ describe('web5 connect', function () {
         .stub(testHarness.agent, 'processDwnRequest')
         .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' }, entries: [ ] } });
 
+      // generate the DID
+      const delegatePortableDid = await delegateBearerDid.export();
+
+      const delegatedGrants = await Oidc.createAuthResponseGrants(
+        delegatePortableDid,
+        providerIdentity.did.uri,
+        authRequest.permissionRequests,
+        testHarness.agent
+      );
+
       // call submitAuthResponse
       await Oidc.submitAuthResponse(
         providerIdentity.did.uri,
         authRequest,
         randomPin,
-        testHarness.agent
+        delegateBearerDid,
+        delegatedGrants
       );
 
       // expect the process request to be called for query and configure
@@ -607,12 +637,25 @@ describe('web5 connect', function () {
       // processDwnRequestStub should resolve a 200 with no entires
       processDwnRequestStub.resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' } } });
 
+
+      // generate the DID
+      const delegateBearerDid2 = await DidJwk.create();
+      const delegatePortableDid2 = await delegateBearerDid2.export();
+
+      const delegatedGrants2 = await Oidc.createAuthResponseGrants(
+        delegatePortableDid2,
+        providerIdentity.did.uri,
+        authRequest.permissionRequests,
+        testHarness.agent
+      );
+
       // call submitAuthResponse
       await Oidc.submitAuthResponse(
         providerIdentity.did.uri,
         authRequest,
         randomPin,
-        testHarness.agent
+        delegateBearerDid2,
+        delegatedGrants2
       );
 
       // expect the process request to be called for query and configure
@@ -658,13 +701,16 @@ describe('web5 connect', function () {
         .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' } } });
 
       try {
-        // call submitAuthResponse
-        await Oidc.submitAuthResponse(
-          providerIdentity.did.uri,
-          authRequest,
-          randomPin,
-          testHarness.agent
-        );
+      // generate the DID
+      const delegateBearerDid = await DidJwk.create();
+      const delegatePortableDid = await delegateBearerDid.export();
+
+      await Oidc.createAuthResponseGrants(
+        delegatePortableDid,
+        providerIdentity.did.uri,
+        authRequest.permissionRequests,
+        testHarness.agent
+      );
 
         expect.fail('should have thrown an error');
       } catch (error: any) {
@@ -709,11 +755,14 @@ describe('web5 connect', function () {
         .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' }, entries: [ protocolMessage ] } });
 
       try {
-        // call submitAuthResponse
-        await Oidc.submitAuthResponse(
+        // generate the DID
+        const delegateBearerDid = await DidJwk.create();
+        const delegatePortableDid = await delegateBearerDid.export();
+
+        await Oidc.createAuthResponseGrants(
+          delegatePortableDid,
           providerIdentity.did.uri,
-          authRequest,
-          randomPin,
+          authRequest.permissionRequests,
           testHarness.agent
         );
 
@@ -758,14 +807,16 @@ describe('web5 connect', function () {
         .resolves({ messageCid: '', reply: { status: { code: 500, detail: 'Some Error'}, } });
 
       try {
-        // call submitAuthResponse
-        await Oidc.submitAuthResponse(
-          providerIdentity.did.uri,
-          authRequest,
-          randomPin,
-          testHarness.agent
-        );
+      // generate the DID
+      const delegateBearerDid = await DidJwk.create();
+      const delegatePortableDid = await delegateBearerDid.export();
 
+       await Oidc.createAuthResponseGrants(
+        delegatePortableDid,
+        providerIdentity.did.uri,
+        authRequest.permissionRequests,
+        testHarness.agent
+      );
         expect.fail('should have thrown an error');
       } catch (error: any) {
         expect(error.message).to.equal('Could not fetch protocol: Some Error');
@@ -799,14 +850,16 @@ describe('web5 connect', function () {
       authRequest = await Oidc.createAuthRequest(options);
 
       try {
-        // call submitAuthResponse
-        await Oidc.submitAuthResponse(
-          providerIdentity.did.uri,
-          authRequest,
-          randomPin,
-          testHarness.agent
-        );
+      // generate the DID
+      const delegateBearerDid = await DidJwk.create();
+      const delegatePortableDid = await delegateBearerDid.export();
 
+      await Oidc.createAuthResponseGrants(
+        delegatePortableDid,
+        providerIdentity.did.uri,
+        authRequest.permissionRequests,
+        testHarness.agent
+      );
         expect.fail('should have thrown an error');
       } catch (error: any) {
         expect(error.message).to.equal('All permission scopes must match the protocol uri they are provided with.');
