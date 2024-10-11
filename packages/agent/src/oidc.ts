@@ -751,28 +751,28 @@ async function createAuthResponseGrants(
   permissionRequests: ConnectPermissionRequest[],
   agent: Web5Agent
 ) {
-    // TODO: roll back permissions and protocol configurations if an error occurs. Need a way to delete protocols to achieve this.
-    const processGrant = async (permissionRequest: ConnectPermissionRequest): Promise<DwnDataEncodedRecordsWriteMessage[]> => {
-      const { protocolDefinition, permissionScopes } = permissionRequest;
-    
-      // We validate that all permission scopes match the protocol uri of the protocol definition they are provided with.
-      const grantsMatchProtocolUri = permissionScopes.every(scope => 'protocol' in scope && scope.protocol === protocolDefinition.protocol);
-      if (!grantsMatchProtocolUri) {
-        throw new Error('All permission scopes must match the protocol uri they are provided with.');
-      }
-    
-      await prepareProtocol(selectedDid, agent, protocolDefinition);
-    
-      return await Oidc.createPermissionGrants(
-        selectedDid,
-        delegatedPortableDid,
-        agent,
-        permissionScopes
-      );
-    };
+  // TODO: roll back permissions and protocol configurations if an error occurs. Need a way to delete protocols to achieve this.
+  const processGrant = async (permissionRequest: ConnectPermissionRequest): Promise<DwnDataEncodedRecordsWriteMessage[]> => {
+    const { protocolDefinition, permissionScopes } = permissionRequest;
 
-   const delegateGrants = await Promise.all(permissionRequests.map(processGrant));
-   return delegateGrants .flat();
+    // We validate that all permission scopes match the protocol uri of the protocol definition they are provided with.
+    const grantsMatchProtocolUri = permissionScopes.every(scope => 'protocol' in scope && scope.protocol === protocolDefinition.protocol);
+    if (!grantsMatchProtocolUri) {
+      throw new Error('All permission scopes must match the protocol uri they are provided with.');
+    }
+
+    await prepareProtocol(selectedDid, agent, protocolDefinition);
+
+    return await Oidc.createPermissionGrants(
+      selectedDid,
+      delegatedPortableDid,
+      agent,
+      permissionScopes
+    );
+  };
+
+  const delegateGrants = await Promise.all(permissionRequests.map(processGrant));
+  return delegateGrants .flat();
 }
 
 /**

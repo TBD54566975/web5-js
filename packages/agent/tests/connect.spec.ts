@@ -702,15 +702,15 @@ describe('web5 connect', function () {
 
       try {
       // generate the DID
-      const delegateBearerDid = await DidJwk.create();
-      const delegatePortableDid = await delegateBearerDid.export();
+        const delegateBearerDid = await DidJwk.create();
+        const delegatePortableDid = await delegateBearerDid.export();
 
-      await Oidc.createAuthResponseGrants(
-        delegatePortableDid,
-        providerIdentity.did.uri,
-        authRequest.permissionRequests,
-        testHarness.agent
-      );
+        await Oidc.createAuthResponseGrants(
+          delegatePortableDid,
+          providerIdentity.did.uri,
+          authRequest.permissionRequests,
+          testHarness.agent
+        );
 
         expect.fail('should have thrown an error');
       } catch (error: any) {
@@ -808,15 +808,15 @@ describe('web5 connect', function () {
 
       try {
       // generate the DID
-      const delegateBearerDid = await DidJwk.create();
-      const delegatePortableDid = await delegateBearerDid.export();
+        const delegateBearerDid = await DidJwk.create();
+        const delegatePortableDid = await delegateBearerDid.export();
 
-       await Oidc.createAuthResponseGrants(
-        delegatePortableDid,
-        providerIdentity.did.uri,
-        authRequest.permissionRequests,
-        testHarness.agent
-      );
+        await Oidc.createAuthResponseGrants(
+          delegatePortableDid,
+          providerIdentity.did.uri,
+          authRequest.permissionRequests,
+          testHarness.agent
+        );
         expect.fail('should have thrown an error');
       } catch (error: any) {
         expect(error.message).to.equal('Could not fetch protocol: Some Error');
@@ -851,15 +851,15 @@ describe('web5 connect', function () {
 
       try {
       // generate the DID
-      const delegateBearerDid = await DidJwk.create();
-      const delegatePortableDid = await delegateBearerDid.export();
+        const delegateBearerDid = await DidJwk.create();
+        const delegatePortableDid = await delegateBearerDid.export();
 
-      await Oidc.createAuthResponseGrants(
-        delegatePortableDid,
-        providerIdentity.did.uri,
-        authRequest.permissionRequests,
-        testHarness.agent
-      );
+        await Oidc.createAuthResponseGrants(
+          delegatePortableDid,
+          providerIdentity.did.uri,
+          authRequest.permissionRequests,
+          testHarness.agent
+        );
         expect.fail('should have thrown an error');
       } catch (error: any) {
         expect(error.message).to.equal('All permission scopes must match the protocol uri they are provided with.');
