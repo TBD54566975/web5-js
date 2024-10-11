@@ -423,17 +423,13 @@ export class LocalKeyManager implements AgentKeyManager {
     // Compute the key URI for the key.
     const keyUri = await this.getKeyUri({ key: privateKey });
 
-    const existingKey = await this._keyStore.get({ id: keyUri, agent: this.agent, useCache: true });
-    if (!existingKey) {
-      // Store the key if it does not already exist in the key store.
-      await this._keyStore.set({
-        id                : keyUri,
-        data              : privateKey,
-        agent             : this.agent,
-        preventDuplicates : true,
-        useCache          : true
-      });
-    }
+    await this._keyStore.set({
+      id                : keyUri,
+      data              : privateKey,
+      agent             : this.agent,
+      preventDuplicates : true,
+      useCache          : true
+    });
 
     return keyUri;
   }

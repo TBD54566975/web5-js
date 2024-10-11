@@ -240,6 +240,7 @@ export class BearerDid {
     keyManager?: CryptoApi & KeyImporterExporter<KmsImportKeyParams, KeyIdentifier, KmsExportKeyParams>;
     portableDid: PortableDid;
   }): Promise<BearerDid> {
+
     // Get all verification methods from the given DID document, including embedded methods.
     const verificationMethods = getVerificationMethods({ didDocument: portableDid.document });
 
@@ -250,7 +251,13 @@ export class BearerDid {
 
     // If given, import the private key material into the key manager.
     for (let key of portableDid.privateKeys ?? []) {
-      await keyManager.importKey({ key });
+
+      // confirm th key does not already exist before importing it to avoid failures from the key manager
+      const keyUri = await keyManager.getKeyUri({ key });
+      const keyExists = await keyManager.getPublicKey({ keyUri }).then(() => true).catch(() => false);
+      if (!keyExists) {
+        await keyManager.importKey({ key });
+      }
     }
 
     // Validate that the key material for every verification method in the DID document is present

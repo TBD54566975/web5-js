@@ -120,32 +120,6 @@ describe('LocalKeyManager', () => {
           expect(importedKey).to.exist;
           expect(importedKey).to.deep.equal(key);
         });
-
-        it('does not attempt to import a key that is already in the key store', async () => {
-          // scenario: a key already exists within your key store, you attempt to import it again
-          // the method should not throw an error, but should also not attempt to store the key again
-
-          const storeSetSpy = sinon.spy(testHarness.agent.keyManager['_keyStore'], 'set');
-
-          // generate a key within the key manager
-          const keyUri = await testHarness.agent.keyManager.generateKey({ algorithm: 'secp256k1' });
-          expect(storeSetSpy.callCount).to.equal(1);
-
-          // export the key
-          const exportedKey = await testHarness.agent.keyManager.exportKey({ keyUri });
-
-          // reset the spy count
-          storeSetSpy.resetHistory();
-
-          // attempt to import the same key, will not fail
-          await testHarness.agent.keyManager.importKey({ key: exportedKey });
-          expect(storeSetSpy.callCount).to.equal(0); //
-
-          // sanity import a key generated outside the key manager
-          const key = await Ed25519.generateKey();
-          await testHarness.agent.keyManager.importKey({ key });
-          expect(storeSetSpy.callCount).to.equal(1);
-        });
       });
 
       describe('exportKey()', () => {

@@ -1,5 +1,6 @@
 import { DidResolutionResult, DidResolverCache, DidResolverCacheLevel, DidResolverCacheLevelParams } from '@web5/dids';
 import { Web5PlatformAgent } from './types/agent.js';
+import { logger } from '@web5/common';
 
 
 /**
