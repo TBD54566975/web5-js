@@ -502,6 +502,147 @@ describe('web5 connect', function () {
     });
   });
 
+
+  describe('createAuthResponseGrants', () => {
+    it('should fail if the send request fails for newly configured protocol', async () => {
+      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
+      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
+
+      const permissionRequests = [{ protocolDefinition, permissionScopes }];
+
+      // spy send request
+      const sendRequestSpy = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({
+        reply      : { status: { code: 500, detail: 'Internal Server Error' } },
+        messageCid : ''
+      });
+
+      // return without any entries
+      sinon
+        .stub(testHarness.agent, 'processDwnRequest')
+        .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' } } });
+
+      try {
+      // generate the DID
+        const delegatePortableDid = await delegateBearerDid.export();
+
+        await Oidc.createAuthResponseGrants(
+          delegatePortableDid,
+          providerIdentity.did.uri,
+          permissionRequests,
+          testHarness.agent
+        );
+
+        expect.fail('should have thrown an error');
+      } catch (error: any) {
+        expect(error.message).to.equal('Could not send protocol: Internal Server Error');
+        expect(sendRequestSpy.callCount).to.equal(1);
+      }
+    });
+
+    it('should fail if the send request fails for existing protocol', async () => {
+      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
+      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
+
+      const permissionRequests = [{ protocolDefinition, permissionScopes }];
+
+      // stub the processDwnRequest method to return a protocol entry
+      const protocolMessage = {} as DwnMessage[DwnInterface.ProtocolsConfigure];
+
+      // spy send request
+      const sendRequestSpy = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({
+        reply      : { status: { code: 500, detail: 'Internal Server Error' } },
+        messageCid : ''
+      });
+
+      // mock returning the protocol entry
+      const processDwnRequestStub = sinon
+        .stub(testHarness.agent, 'processDwnRequest')
+        .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' }, entries: [ protocolMessage ] } });
+
+      try {
+        // generate the DID
+        const delegatePortableDid = await delegateBearerDid.export();
+
+        await Oidc.createAuthResponseGrants(
+          delegatePortableDid,
+          providerIdentity.did.uri,
+          permissionRequests,
+          testHarness.agent
+        );
+
+        expect.fail('should have thrown an error');
+      } catch (error: any) {
+        expect(error.message).to.equal('Could not send protocol: Internal Server Error');
+        expect(processDwnRequestStub.callCount).to.equal(1);
+        expect(sendRequestSpy.callCount).to.equal(1);
+      }
+    });
+
+    it('should throw if a grant that is included in the request does not match the protocol definition', async () => {
+      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
+      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
+
+      const callbackUrl = Oidc.buildOidcUrl({
+        baseURL  : 'http://localhost:3000',
+        endpoint : 'callback',
+      });
+
+      const mismatchedScopes = permissionScopes.map((scope) => ({ ...scope })) as RecordsPermissionScope[];
+      mismatchedScopes[0].protocol = 'http://profile-protocol.xyz/other';
+      const permissionRequests = [{ protocolDefinition, permissionScopes: mismatchedScopes }];
+
+      try {
+      // generate the DID
+        const delegatePortableDid = await delegateBearerDid.export();
+
+        await Oidc.createAuthResponseGrants(
+          delegatePortableDid,
+          providerIdentity.did.uri,
+          permissionRequests,
+          testHarness.agent
+        );
+        expect.fail('should have thrown an error');
+      } catch (error: any) {
+        expect(error.message).to.equal('All permission scopes must match the protocol uri they are provided with.');
+      }
+    });
+
+    it('should throw if protocol could not be fetched at all', async () => {
+      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
+      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
+
+      const permissionRequests = [{ protocolDefinition, permissionScopes }];
+
+      // spy send request
+      const sendRequestSpy = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({
+        reply      : { status: { code: 500, detail: 'Internal Server Error' } },
+        messageCid : ''
+      });
+
+      // mock returning the protocol entry
+      const processDwnRequestStub = sinon
+        .stub(testHarness.agent, 'processDwnRequest')
+        .resolves({ messageCid: '', reply: { status: { code: 500, detail: 'Some Error'}, } });
+
+      try {
+      // generate the DID
+        const delegatePortableDid = await delegateBearerDid.export();
+
+        await Oidc.createAuthResponseGrants(
+          delegatePortableDid,
+          providerIdentity.did.uri,
+          permissionRequests,
+          testHarness.agent
+        );
+        expect.fail('should have thrown an error');
+      } catch (error: any) {
+        expect(error.message).to.equal('Could not fetch protocol: Some Error');
+        expect(processDwnRequestStub.callCount).to.equal(1);
+        expect(sendRequestSpy.callCount).to.equal(0);
+      }
+    });
+  });
+
   describe('submitAuthResponse', () => {
     it('should not attempt to configure the protocol if it already exists', async () => {
       // scenario: the wallet gets a request for a protocol that it already has configured
@@ -666,204 +807,6 @@ describe('web5 connect', function () {
       // send request should be called once as a ProtocolsConfigure
       expect(sendRequestSpy.callCount).to.equal(1);
       expect(sendRequestSpy.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsConfigure);
-    });
-
-    it('should fail if the send request fails for newly configured protocol', async () => {
-      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
-      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
-      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
-
-      const callbackUrl = Oidc.buildOidcUrl({
-        baseURL  : 'http://localhost:3000',
-        endpoint : 'callback',
-      });
-
-      const options = {
-        displayName        : 'Sample App',
-        client_id          : clientEphemeralPortableDid.uri,
-        scope              : 'openid did:jwk',
-        // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
-        // code_challenge_method : 'S256' as const,
-        permissionRequests : [{ protocolDefinition, permissionScopes }],
-        redirect_uri       : callbackUrl,
-      };
-      authRequest = await Oidc.createAuthRequest(options);
-
-      // spy send request
-      const sendRequestSpy = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({
-        reply      : { status: { code: 500, detail: 'Internal Server Error' } },
-        messageCid : ''
-      });
-
-      // return without any entries
-      const processDwnRequestStub = sinon
-        .stub(testHarness.agent, 'processDwnRequest')
-        .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' } } });
-
-      try {
-      // generate the DID
-        const delegateBearerDid = await DidJwk.create();
-        const delegatePortableDid = await delegateBearerDid.export();
-
-        await Oidc.createAuthResponseGrants(
-          delegatePortableDid,
-          providerIdentity.did.uri,
-          authRequest.permissionRequests,
-          testHarness.agent
-        );
-
-        expect.fail('should have thrown an error');
-      } catch (error: any) {
-        expect(error.message).to.equal('Could not send protocol: Internal Server Error');
-        expect(sendRequestSpy.callCount).to.equal(1);
-      }
-    });
-
-    it('should fail if the send request fails for existing protocol', async () => {
-      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
-      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
-      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
-
-      const callbackUrl = Oidc.buildOidcUrl({
-        baseURL  : 'http://localhost:3000',
-        endpoint : 'callback',
-      });
-
-      const options = {
-        displayName        : 'Sample App',
-        client_id          : clientEphemeralPortableDid.uri,
-        scope              : 'openid did:jwk',
-        // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
-        // code_challenge_method : 'S256' as const,
-        permissionRequests : [{ protocolDefinition, permissionScopes }],
-        redirect_uri       : callbackUrl,
-      };
-      authRequest = await Oidc.createAuthRequest(options);
-
-      // stub the processDwnRequest method to return a protocol entry
-      const protocolMessage = {} as DwnMessage[DwnInterface.ProtocolsConfigure];
-
-      // spy send request
-      const sendRequestSpy = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({
-        reply      : { status: { code: 500, detail: 'Internal Server Error' } },
-        messageCid : ''
-      });
-
-      // mock returning the protocol entry
-      const processDwnRequestStub = sinon
-        .stub(testHarness.agent, 'processDwnRequest')
-        .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' }, entries: [ protocolMessage ] } });
-
-      try {
-        // generate the DID
-        const delegateBearerDid = await DidJwk.create();
-        const delegatePortableDid = await delegateBearerDid.export();
-
-        await Oidc.createAuthResponseGrants(
-          delegatePortableDid,
-          providerIdentity.did.uri,
-          authRequest.permissionRequests,
-          testHarness.agent
-        );
-
-        expect.fail('should have thrown an error');
-      } catch (error: any) {
-        expect(error.message).to.equal('Could not send protocol: Internal Server Error');
-        expect(processDwnRequestStub.callCount).to.equal(1);
-        expect(sendRequestSpy.callCount).to.equal(1);
-      }
-    });
-
-    it('should throw if protocol could not be fetched at all', async () => {
-      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
-      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
-      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
-
-      const callbackUrl = Oidc.buildOidcUrl({
-        baseURL  : 'http://localhost:3000',
-        endpoint : 'callback',
-      });
-
-      const options = {
-        displayName        : 'Sample App',
-        client_id          : clientEphemeralPortableDid.uri,
-        scope              : 'openid did:jwk',
-        // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
-        // code_challenge_method : 'S256' as const,
-        permissionRequests : [{ protocolDefinition, permissionScopes }],
-        redirect_uri       : callbackUrl,
-      };
-      authRequest = await Oidc.createAuthRequest(options);
-
-      // spy send request
-      const sendRequestSpy = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({
-        reply      : { status: { code: 500, detail: 'Internal Server Error' } },
-        messageCid : ''
-      });
-
-      // mock returning the protocol entry
-      const processDwnRequestStub = sinon
-        .stub(testHarness.agent, 'processDwnRequest')
-        .resolves({ messageCid: '', reply: { status: { code: 500, detail: 'Some Error'}, } });
-
-      try {
-      // generate the DID
-        const delegateBearerDid = await DidJwk.create();
-        const delegatePortableDid = await delegateBearerDid.export();
-
-        await Oidc.createAuthResponseGrants(
-          delegatePortableDid,
-          providerIdentity.did.uri,
-          authRequest.permissionRequests,
-          testHarness.agent
-        );
-        expect.fail('should have thrown an error');
-      } catch (error: any) {
-        expect(error.message).to.equal('Could not fetch protocol: Some Error');
-        expect(processDwnRequestStub.callCount).to.equal(1);
-        expect(sendRequestSpy.callCount).to.equal(0);
-      }
-    });
-
-    it('should throw if a grant that is included in the request does not match the protocol definition', async () => {
-      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
-      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
-      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
-
-      const callbackUrl = Oidc.buildOidcUrl({
-        baseURL  : 'http://localhost:3000',
-        endpoint : 'callback',
-      });
-
-      const mismatchedScopes = [...permissionScopes];
-      mismatchedScopes[0].protocol = 'http://profile-protocol.xyz/other';
-
-      const options = {
-        displayName        : 'Sample App',
-        client_id          : clientEphemeralPortableDid.uri,
-        scope              : 'openid did:jwk',
-        // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
-        // code_challenge_method : 'S256' as const,
-        permissionRequests : [{ protocolDefinition, permissionScopes }],
-        redirect_uri       : callbackUrl,
-      };
-      authRequest = await Oidc.createAuthRequest(options);
-
-      try {
-      // generate the DID
-        const delegateBearerDid = await DidJwk.create();
-        const delegatePortableDid = await delegateBearerDid.export();
-
-        await Oidc.createAuthResponseGrants(
-          delegatePortableDid,
-          providerIdentity.did.uri,
-          authRequest.permissionRequests,
-          testHarness.agent
-        );
-        expect.fail('should have thrown an error');
-      } catch (error: any) {
-        expect(error.message).to.equal('All permission scopes must match the protocol uri they are provided with.');
-      }
     });
   });
 
