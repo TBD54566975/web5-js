@@ -447,5 +447,23 @@ describe('BearerDid', () => {
         expect(error.message).to.include('Key not found');
       }
     });
+
+    it('does not attempt to import a key that is already in the key manager', async () => {
+
+      // create a key manager
+      const keyManager = new LocalKeyManager();
+
+      // Import one of the private keys into the key manager
+      const privateKey = portableDid.privateKeys![0];
+      await keyManager.importKey({ key: privateKey });
+
+      // spy on the importKey method
+      const importKeySpy = sinon.spy(keyManager, 'importKey');
+
+      // attempt to import the BearerDid with the key manager
+      const did = await BearerDid.import({ portableDid, keyManager });
+      expect(did.uri).to.equal(portableDid.uri);
+      expect(importKeySpy.calledOnce).to.be.false;
+    });
   });
 });
