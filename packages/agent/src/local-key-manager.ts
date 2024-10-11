@@ -423,6 +423,7 @@ export class LocalKeyManager implements AgentKeyManager {
     // Compute the key URI for the key.
     const keyUri = await this.getKeyUri({ key: privateKey });
 
+    // Store the key in the key store.
     await this._keyStore.set({
       id                : keyUri,
       data              : privateKey,

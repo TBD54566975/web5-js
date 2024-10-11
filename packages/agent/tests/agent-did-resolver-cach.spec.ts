@@ -5,7 +5,6 @@ import { TestAgent } from './utils/test-agent.js';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { BearerDid, DidJwk } from '@web5/dids';
-import { BearerIdentity } from '../src/bearer-identity.js';
 
 describe('AgentDidResolverCache',  () => {
   let resolverCache: AgentDidResolverCache;
@@ -81,7 +80,7 @@ describe('AgentDidResolverCache',  () => {
 
     const getStub = sinon.stub(resolverCache['cache'], 'get').resolves(JSON.stringify({ ttlMillis: Date.now() - 1000, value: { didDocument: { id: did.uri } } }));
     const resolveSpy = sinon.spy(testHarness.agent.did, 'resolve').withArgs(did.uri);
-    const nextTickSpy = sinon.stub(resolverCache['cache'], 'nextTick').resolves();
+    sinon.stub(resolverCache['cache'], 'nextTick').resolves();
     const didApiStub = sinon.stub(testHarness.agent.did, 'get');
     const updateSpy = sinon.stub(testHarness.agent.did, 'update').resolves();
     didApiStub.withArgs({ didUri: did.uri, tenant: testHarness.agent.agentDid.uri }).resolves(new BearerDid({
@@ -104,7 +103,7 @@ describe('AgentDidResolverCache',  () => {
 
     const getStub = sinon.stub(resolverCache['cache'], 'get').resolves(JSON.stringify({ ttlMillis: Date.now() - 1000, value: { didDocument: { id: did.uri } } }));
     const resolveSpy = sinon.spy(testHarness.agent.did, 'resolve').withArgs(did.uri);
-    const nextTickSpy = sinon.stub(resolverCache['cache'], 'nextTick').resolves();
+    sinon.stub(resolverCache['cache'], 'nextTick').resolves();
     const didApiStub = sinon.stub(testHarness.agent.did, 'get');
     const updateSpy = sinon.stub(testHarness.agent.did, 'update').rejects(new Error('Some Error'));
     const consoleErrorSpy = sinon.stub(console, 'error');
@@ -137,7 +136,7 @@ describe('AgentDidResolverCache',  () => {
 
   it('throws if the error is anything other than a notFound error', async () => {
     const did = testHarness.agent.agentDid.uri;
-    const getStub = sinon.stub(resolverCache['cache'], 'get').rejects(new Error('Some Error'));
+    sinon.stub(resolverCache['cache'], 'get').rejects(new Error('Some Error'));
 
     try {
       await resolverCache.get(did);
