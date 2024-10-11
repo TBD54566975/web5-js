@@ -5,6 +5,7 @@ import { TestAgent } from './utils/test-agent.js';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { BearerDid, DidJwk } from '@web5/dids';
+import { logger } from '@web5/common';
 
 describe('AgentDidResolverCache',  () => {
   let resolverCache: AgentDidResolverCache;
@@ -106,7 +107,7 @@ describe('AgentDidResolverCache',  () => {
     sinon.stub(resolverCache['cache'], 'nextTick').resolves();
     const didApiStub = sinon.stub(testHarness.agent.did, 'get');
     const updateSpy = sinon.stub(testHarness.agent.did, 'update').rejects(new Error('Some Error'));
-    const consoleErrorSpy = sinon.stub(console, 'error');
+    const consoleErrorSpy = sinon.stub(logger, 'error');
     didApiStub.withArgs({ didUri: did.uri, tenant: testHarness.agent.agentDid.uri }).resolves(new BearerDid({
       uri        : did.uri,
       document   : { id: did.uri },
