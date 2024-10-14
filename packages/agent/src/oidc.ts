@@ -788,10 +788,18 @@ async function submitAuthResponse(
   selectedDid: string,
   authRequest: Web5ConnectAuthRequest,
   randomPin: string,
-  delegateBearerDid: BearerDid,
-  delegateGrants: DwnDataEncodedRecordsWriteMessage[]
+  agent: Web5Agent,
 ) {
+  const delegateBearerDid = await DidJwk.create();
   const delegatePortableDid = await delegateBearerDid.export();
+
+  // Create the permission grants for the selected DID.
+  const delegateGrants = await Oidc.createAuthResponseGrants(
+    delegatePortableDid,
+    selectedDid,
+    authRequest.permissionRequests,
+    agent
+  );
 
   logger.log('Generating auth response object...');
   const responseObject = await Oidc.createResponseObject({

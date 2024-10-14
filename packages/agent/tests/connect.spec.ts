@@ -363,6 +363,7 @@ describe('web5 connect', function () {
     it('should send the encrypted jwe authresponse to the server', async () => {
       sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
       sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
+      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
 
       const formEncodedRequest = new URLSearchParams({
         id_token : authResponseJwe,
@@ -402,8 +403,7 @@ describe('web5 connect', function () {
         selectedDid,
         authRequest,
         randomPin,
-        delegateBearerDid,
-        delegatedGrants
+        testHarness.agent
       );
       expect(fetchSpy.calledOnce).to.be.true;
     });
@@ -683,20 +683,11 @@ describe('web5 connect', function () {
 
       const delegatePortableDid = await delegateBearerDid.export();
 
-      const delegatedGrants = await Oidc.createAuthResponseGrants(
+      await Oidc.createAuthResponseGrants(
         delegatePortableDid,
         providerIdentity.did.uri,
         authRequest.permissionRequests,
         testHarness.agent
-      );
-
-      // call submitAuthResponse
-      await Oidc.submitAuthResponse(
-        providerIdentity.did.uri,
-        authRequest,
-        randomPin,
-        delegateBearerDid,
-        delegatedGrants
       );
 
       // expect the process request to only be called once for ProtocolsQuery
@@ -746,20 +737,11 @@ describe('web5 connect', function () {
       // generate the DID
       const delegatePortableDid = await delegateBearerDid.export();
 
-      const delegatedGrants = await Oidc.createAuthResponseGrants(
+      await Oidc.createAuthResponseGrants(
         delegatePortableDid,
         providerIdentity.did.uri,
         authRequest.permissionRequests,
         testHarness.agent
-      );
-
-      // call submitAuthResponse
-      await Oidc.submitAuthResponse(
-        providerIdentity.did.uri,
-        authRequest,
-        randomPin,
-        delegateBearerDid,
-        delegatedGrants
       );
 
       // expect the process request to be called for query and configure
@@ -783,20 +765,11 @@ describe('web5 connect', function () {
       const delegateBearerDid2 = await DidJwk.create();
       const delegatePortableDid2 = await delegateBearerDid2.export();
 
-      const delegatedGrants2 = await Oidc.createAuthResponseGrants(
+      await Oidc.createAuthResponseGrants(
         delegatePortableDid2,
         providerIdentity.did.uri,
         authRequest.permissionRequests,
         testHarness.agent
-      );
-
-      // call submitAuthResponse
-      await Oidc.submitAuthResponse(
-        providerIdentity.did.uri,
-        authRequest,
-        randomPin,
-        delegateBearerDid2,
-        delegatedGrants2
       );
 
       // expect the process request to be called for query and configure
