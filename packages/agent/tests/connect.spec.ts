@@ -388,17 +388,6 @@ describe('web5 connect', function () {
       );
 
       const selectedDid = providerIdentity.did.uri;
-
-      // generate the DID
-      const delegatePortableDid = await delegateBearerDid.export();
-
-      const delegatedGrants = await Oidc.createAuthResponseGrants(
-        delegatePortableDid,
-        selectedDid,
-        authRequest.permissionRequests,
-        testHarness.agent
-      );
-
       await Oidc.submitAuthResponse(
         selectedDid,
         authRequest,
@@ -502,6 +491,93 @@ describe('web5 connect', function () {
     });
   });
 
+  describe('createPermissionRequestForProtocol', () => {
+    it('should add sync permissions to all requests', async () => {
+      const protocol:DwnProtocolDefinition = {
+        published : true,
+        protocol  : 'https://exmaple.org/protocols/social',
+        types     : {
+          note: {
+            schema      : 'https://example.org/schemas/note',
+            dataFormats : [ 'application/json', 'text/plain' ],
+          }
+        },
+        structure: {
+          note: {}
+        }
+      };
+
+      const permissionRequests = WalletConnect.createPermissionRequestForProtocol({
+        definition: protocol, permissions: []
+      });
+
+      expect(permissionRequests.protocolDefinition).to.deep.equal(protocol);
+      expect(permissionRequests.permissionScopes.length).to.equal(4); // only includes the sync permissions + protocol query permission
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Messages && scope.method === DwnMethodName.Read)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Messages && scope.method === DwnMethodName.Query)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Messages && scope.method === DwnMethodName.Subscribe)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Protocols && scope.method === DwnMethodName.Query)).to.not.be.undefined;
+    });
+
+    it('should add requested permissions to the request', async () => {
+      const protocol:DwnProtocolDefinition = {
+        published : true,
+        protocol  : 'https://exmaple.org/protocols/social',
+        types     : {
+          note: {
+            schema      : 'https://example.org/schemas/note',
+            dataFormats : [ 'application/json', 'text/plain' ],
+          }
+        },
+        structure: {
+          note: {}
+        }
+      };
+
+      const permissionRequests = WalletConnect.createPermissionRequestForProtocol({
+        definition: protocol, permissions: ['write', 'read']
+      });
+
+      expect(permissionRequests.protocolDefinition).to.deep.equal(protocol);
+
+      // the 3 sync permissions plus the 2 requested permissions, and a protocol query permission
+      expect(permissionRequests.permissionScopes.length).to.equal(6);
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Read)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Write)).to.not.be.undefined;
+    });
+
+    it('supports requesting `read`, `write`, `delete`, `query`, `subscribe` and `configure` permissions', async () => {
+      const protocol:DwnProtocolDefinition = {
+        published : true,
+        protocol  : 'https://exmaple.org/protocols/social',
+        types     : {
+          note: {
+            schema      : 'https://example.org/schemas/note',
+            dataFormats : [ 'application/json', 'text/plain' ],
+          }
+        },
+        structure: {
+          note: {}
+        }
+      };
+
+      const permissionRequests = WalletConnect.createPermissionRequestForProtocol({
+        definition: protocol, permissions: ['write', 'read', 'delete', 'query', 'subscribe', 'configure']
+      });
+
+      expect(permissionRequests.protocolDefinition).to.deep.equal(protocol);
+
+      // the 3 sync permissions plus the 5 requested permissions
+      expect(permissionRequests.permissionScopes.length).to.equal(10);
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Read)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Write)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Delete)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Query)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Subscribe)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Protocols && scope.method === DwnMethodName.Query)).to.not.be.undefined;
+      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Protocols && scope.method === DwnMethodName.Configure)).to.not.be.undefined;
+    });
+  });
 
   describe('createAuthResponseGrants', () => {
     it('should fail if the send request fails for newly configured protocol', async () => {
@@ -640,234 +716,6 @@ describe('web5 connect', function () {
         expect(processDwnRequestStub.callCount).to.equal(1);
         expect(sendRequestSpy.callCount).to.equal(0);
       }
-    });
-  });
-
-  describe('submitAuthResponse', () => {
-    it('should not attempt to configure the protocol if it already exists', async () => {
-      // scenario: the wallet gets a request for a protocol that it already has configured
-      // the wallet should not attempt to re-configure, but instead ensure that the protocol is
-      // sent to the remote DWN for the requesting client to be able to sync it down later
-
-      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
-      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
-
-      const callbackUrl = Oidc.buildOidcUrl({
-        baseURL  : 'http://localhost:3000',
-        endpoint : 'callback',
-      });
-
-      const options = {
-        displayName        : 'Sample App',
-        client_id          : clientEphemeralPortableDid.uri,
-        scope              : 'openid did:jwk',
-        // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
-        // code_challenge_method : 'S256' as const,
-        permissionRequests : [{ protocolDefinition, permissionScopes }],
-        redirect_uri       : callbackUrl,
-      };
-      authRequest = await Oidc.createAuthRequest(options);
-
-      // stub the processDwnRequest method to return a protocol entry
-      const protocolMessage = {} as DwnMessage[DwnInterface.ProtocolsConfigure];
-
-      // spy send request
-      const sendRequestSpy = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({
-        messageCid : '',
-        reply      : { status: { code: 202, detail: 'OK' } }
-      });
-
-      const processDwnRequestStub = sinon
-        .stub(testHarness.agent, 'processDwnRequest')
-        .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' }, entries: [ protocolMessage ]} });
-
-      const delegatePortableDid = await delegateBearerDid.export();
-
-      await Oidc.createAuthResponseGrants(
-        delegatePortableDid,
-        providerIdentity.did.uri,
-        authRequest.permissionRequests,
-        testHarness.agent
-      );
-
-      // expect the process request to only be called once for ProtocolsQuery
-      expect(processDwnRequestStub.callCount).to.equal(1);
-      expect(processDwnRequestStub.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsQuery);
-
-      // send request should be called once as a ProtocolsConfigure
-      expect(sendRequestSpy.callCount).to.equal(1);
-      expect(sendRequestSpy.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsConfigure);
-    });
-
-    it('should configure the protocol if it does not exist', async () => {
-      // scenario: the wallet gets a request for a protocol that it does not have configured
-      // the wallet should attempt to configure the protocol and then send the protocol to the remote DWN
-
-      // looks for a response of 404, empty entries array or missing entries array
-
-      sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
-      sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
-
-      const callbackUrl = Oidc.buildOidcUrl({
-        baseURL  : 'http://localhost:3000',
-        endpoint : 'callback',
-      });
-
-      const options = {
-        displayName        : 'Sample App',
-        client_id          : clientEphemeralPortableDid.uri,
-        scope              : 'openid did:jwk',
-        // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
-        // code_challenge_method : 'S256' as const,
-        permissionRequests : [{ protocolDefinition, permissionScopes }],
-        redirect_uri       : callbackUrl,
-      };
-      authRequest = await Oidc.createAuthRequest(options);
-
-      // spy send request
-      const sendRequestSpy = sinon.stub(testHarness.agent, 'sendDwnRequest').resolves({
-        messageCid : '',
-        reply      : { status: { code: 202, detail: 'OK' } }
-      });
-
-      const processDwnRequestStub = sinon
-        .stub(testHarness.agent, 'processDwnRequest')
-        .resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' }, entries: [ ] } });
-
-      // generate the DID
-      const delegatePortableDid = await delegateBearerDid.export();
-
-      await Oidc.createAuthResponseGrants(
-        delegatePortableDid,
-        providerIdentity.did.uri,
-        authRequest.permissionRequests,
-        testHarness.agent
-      );
-
-      // expect the process request to be called for query and configure
-      expect(processDwnRequestStub.callCount).to.equal(2);
-      expect(processDwnRequestStub.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsQuery);
-      expect(processDwnRequestStub.secondCall.args[0].messageType).to.equal(DwnInterface.ProtocolsConfigure);
-
-      // send request should be called once as a ProtocolsConfigure
-      expect(sendRequestSpy.callCount).to.equal(1);
-      expect(sendRequestSpy.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsConfigure);
-
-      // reset the spys
-      processDwnRequestStub.resetHistory();
-      sendRequestSpy.resetHistory();
-
-      // processDwnRequestStub should resolve a 200 with no entires
-      processDwnRequestStub.resolves({ messageCid: '', reply: { status: { code: 200, detail: 'OK' } } });
-
-
-      // generate the DID
-      const delegateBearerDid2 = await DidJwk.create();
-      const delegatePortableDid2 = await delegateBearerDid2.export();
-
-      await Oidc.createAuthResponseGrants(
-        delegatePortableDid2,
-        providerIdentity.did.uri,
-        authRequest.permissionRequests,
-        testHarness.agent
-      );
-
-      // expect the process request to be called for query and configure
-      expect(processDwnRequestStub.callCount).to.equal(2);
-      expect(processDwnRequestStub.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsQuery);
-      expect(processDwnRequestStub.secondCall.args[0].messageType).to.equal(DwnInterface.ProtocolsConfigure);
-
-      // send request should be called once as a ProtocolsConfigure
-      expect(sendRequestSpy.callCount).to.equal(1);
-      expect(sendRequestSpy.firstCall.args[0].messageType).to.equal(DwnInterface.ProtocolsConfigure);
-    });
-  });
-
-  describe('createPermissionRequestForProtocol', () => {
-    it('should add sync permissions to all requests', async () => {
-      const protocol:DwnProtocolDefinition = {
-        published : true,
-        protocol  : 'https://exmaple.org/protocols/social',
-        types     : {
-          note: {
-            schema      : 'https://example.org/schemas/note',
-            dataFormats : [ 'application/json', 'text/plain' ],
-          }
-        },
-        structure: {
-          note: {}
-        }
-      };
-
-      const permissionRequests = WalletConnect.createPermissionRequestForProtocol({
-        definition: protocol, permissions: []
-      });
-
-      expect(permissionRequests.protocolDefinition).to.deep.equal(protocol);
-      expect(permissionRequests.permissionScopes.length).to.equal(4); // only includes the sync permissions + protocol query permission
-      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Messages && scope.method === DwnMethodName.Read)).to.not.be.undefined;
-      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Messages && scope.method === DwnMethodName.Query)).to.not.be.undefined;
-      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Messages && scope.method === DwnMethodName.Subscribe)).to.not.be.undefined;
-      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Protocols && scope.method === DwnMethodName.Query)).to.not.be.undefined;
-    });
-
-    it('should add requested permissions to the request', async () => {
-      const protocol:DwnProtocolDefinition = {
-        published : true,
-        protocol  : 'https://exmaple.org/protocols/social',
-        types     : {
-          note: {
-            schema      : 'https://example.org/schemas/note',
-            dataFormats : [ 'application/json', 'text/plain' ],
-          }
-        },
-        structure: {
-          note: {}
-        }
-      };
-
-      const permissionRequests = WalletConnect.createPermissionRequestForProtocol({
-        definition: protocol, permissions: ['write', 'read']
-      });
-
-      expect(permissionRequests.protocolDefinition).to.deep.equal(protocol);
-
-      // the 3 sync permissions plus the 2 requested permissions, and a protocol query permission
-      expect(permissionRequests.permissionScopes.length).to.equal(6);
-      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Read)).to.not.be.undefined;
-      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Write)).to.not.be.undefined;
-    });
-
-    it('supports requesting `read`, `write`, `delete`, `query`, `subscribe` and `configure` permissions', async () => {
-      const protocol:DwnProtocolDefinition = {
-        published : true,
-        protocol  : 'https://exmaple.org/protocols/social',
-        types     : {
-          note: {
-            schema      : 'https://example.org/schemas/note',
-            dataFormats : [ 'application/json', 'text/plain' ],
-          }
-        },
-        structure: {
-          note: {}
-        }
-      };
-
-      const permissionRequests = WalletConnect.createPermissionRequestForProtocol({
-        definition: protocol, permissions: ['write', 'read', 'delete', 'query', 'subscribe', 'configure']
-      });
-
-      expect(permissionRequests.protocolDefinition).to.deep.equal(protocol);
-
-      // the 3 sync permissions plus the 5 requested permissions
-      expect(permissionRequests.permissionScopes.length).to.equal(10);
-      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Read)).to.not.be.undefined;
-      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Write)).to.not.be.undefined;
-      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Delete)).to.not.be.undefined;
-      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Query)).to.not.be.undefined;
-      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Records && scope.method === DwnMethodName.Subscribe)).to.not.be.undefined;
-      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Protocols && scope.method === DwnMethodName.Query)).to.not.be.undefined;
-      expect(permissionRequests.permissionScopes.find(scope => scope.interface === DwnInterfaceName.Protocols && scope.method === DwnMethodName.Configure)).to.not.be.undefined;
     });
   });
 });
