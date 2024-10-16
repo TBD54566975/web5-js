@@ -9,6 +9,9 @@ import type { IdentityMetadata, PortableIdentity } from './types/identity.js';
 import { BearerIdentity } from './bearer-identity.js';
 import { isPortableDid } from './prototyping/dids/utils.js';
 import { InMemoryIdentityStore } from './store-identity.js';
+import { getDwnServiceEndpointUrls } from './utils.js';
+import { canonicalize } from '@web5/crypto';
+import { PortableDid } from '@web5/dids';
 
 export interface IdentityApiParams<TKeyManager extends AgentKeyManager> {
   agent?: Web5PlatformAgent<TKeyManager>;
@@ -214,6 +217,44 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
 
     // Delete the Identity from the Agent's Identity store.
     await this._store.delete({ id: didUri, agent: this.agent });
+  }
+
+  public getDwnEndpoints({ didUri }: { didUri: string; }): Promise<string[]> {
+    return getDwnServiceEndpointUrls(didUri, this.agent.did);
+  }
+
+  public async setDwnEndpoints({ didUri, endpoints }: { didUri: string; endpoints: string[] }): Promise<void> {
+    const bearerDid = await this.agent.did.get({ didUri });
+    if (!bearerDid) {
+      throw new Error(`AgentIdentityApi: Failed to set DWN endpoints due to DID not found: ${didUri}`);
+    }
+
+    const portableDid = JSON.parse(JSON.stringify(await bearerDid.export())) as PortableDid;
+    const dwnService = portableDid.document.service?.find(service => service.id.endsWith('dwn'));
+    if (dwnService) {
+      // Update the existing DWN Service with the provided endpoints
+      dwnService.serviceEndpoint = endpoints;
+    } else {
+
+      // create a DWN Service to add to the DID document
+      const newDwnService = {
+        id              : 'dwn',
+        type            : 'DecentralizedWebNode',
+        serviceEndpoint : endpoints,
+        enc             : '#enc',
+        sig             : '#sig'
+      };
+
+      // if no other services exist, create a new array with the DWN service
+      if (!portableDid.document.service) {
+        portableDid.document.service = [newDwnService];
+      } else {
+        // otherwise, push the new DWN service to the existing services
+        portableDid.document.service.push(newDwnService);
+      }
+    }
+
+    await this.agent.did.update({ portableDid, tenant: this.agent.agentDid.uri });
   }
 
   /**

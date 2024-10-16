@@ -4,7 +4,7 @@ import { PaginationCursor, RecordsDeleteMessage, RecordsWriteMessage } from '@tb
 import { Readable } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { ReadableWebToNodeStream } from 'readable-web-to-node-stream';
-import { DateSort, DwnInterfaceName, DwnMethodName, Message, Records, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
+import { DateSort, DwnInterfaceName, DwnMethodName, Message, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 
 export function blobToIsomorphicNodeReadable(blob: Blob): Readable {
   return webReadableToIsomorphicNodeReadable(blob.stream() as ReadableStream<any>);
@@ -36,6 +36,9 @@ export async function getDwnServiceEndpointUrls(didUri: string, dereferencer: Di
 
   // If the DID service with ID fragment #dwn was not found or is not valid, return an empty array.
   return [];
+}
+
+export async function setDwnServiceEndpointUrls(didUri: string, serviceEndpointUrls: string[], dereferencer: DidUrlDereferencer) {
 }
 
 export function getRecordAuthor(record: RecordsWriteMessage | RecordsDeleteMessage): string | undefined {

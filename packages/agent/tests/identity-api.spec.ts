@@ -5,6 +5,7 @@ import { TestAgent } from './utils/test-agent.js';
 import { AgentIdentityApi } from '../src/identity-api.js';
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { PortableIdentity } from '../src/index.js';
+import { BearerDid, PortableDid } from '@web5/dids';
 
 describe('AgentIdentityApi', () => {
 
@@ -217,6 +218,160 @@ describe('AgentIdentityApi', () => {
           } catch (error: any) {
             expect(error.message).to.include('AgentIdentityApi: Failed to purge due to Identity not found');
           }
+        });
+      });
+
+      describe('setDwnEndpoints()', () => {
+        it('should set the DWN endpoints for a DID', async () => {
+          const initialEndpoints = ['https://example.com/dwn'];
+          // create a new identity
+          const identity = await testHarness.agent.identity.create({
+            didMethod  : 'dht',
+            didOptions : {
+              services: [
+                {
+                  id              : 'dwn',
+                  type            : 'DecentralizedWebNode',
+                  serviceEndpoint : initialEndpoints,
+                  enc             : '#enc',
+                  sig             : '#sig',
+                }
+              ],
+              verificationMethods: [
+                {
+                  algorithm : 'Ed25519',
+                  id        : 'sig',
+                  purposes  : ['assertionMethod', 'authentication']
+                },
+                {
+                  algorithm : 'secp256k1',
+                  id        : 'enc',
+                  purposes  : ['keyAgreement']
+                }
+              ]
+            },
+            metadata: { name: 'Alice' },
+          });
+
+          // control: get the service endpoints of the created DID
+          const initialDwnEndpoints = await testHarness.agent.identity.getDwnEndpoints({ didUri: identity.did.uri });
+          expect(initialDwnEndpoints).to.deep.equal(initialEndpoints);
+
+          // set new endpoints
+          const newEndpoints = ['https://example.com/dwn2'];
+          await testHarness.agent.identity.setDwnEndpoints({ didUri: identity.did.uri, endpoints: newEndpoints });
+
+          // get the service endpoints of the updated DID
+          const updatedDwnEndpoints = await testHarness.agent.identity.getDwnEndpoints({ didUri: identity.did.uri });
+          expect(updatedDwnEndpoints).to.deep.equal(newEndpoints);
+        });
+
+        it('should throw an error if the service endpoints remain unchanged', async () => {
+          const initialEndpoints = ['https://example.com/dwn'];
+          // create a new identity
+          const identity = await testHarness.agent.identity.create({
+            didMethod  : 'dht',
+            didOptions : {
+              services: [
+                {
+                  id              : 'dwn',
+                  type            : 'DecentralizedWebNode',
+                  serviceEndpoint : initialEndpoints,
+                  enc             : '#enc',
+                  sig             : '#sig',
+                }
+              ],
+              verificationMethods: [
+                {
+                  algorithm : 'Ed25519',
+                  id        : 'sig',
+                  purposes  : ['assertionMethod', 'authentication']
+                },
+                {
+                  algorithm : 'secp256k1',
+                  id        : 'enc',
+                  purposes  : ['keyAgreement']
+                }
+              ]
+            },
+            metadata: { name: 'Alice' },
+          });
+
+          // control: get the service endpoints of the created DID
+          const initialDwnEndpoints = await testHarness.agent.identity.getDwnEndpoints({ didUri: identity.did.uri });
+          expect(initialDwnEndpoints).to.deep.equal(initialEndpoints);
+
+          // set the same endpoints
+          try {
+            await testHarness.agent.identity.setDwnEndpoints({ didUri: identity.did.uri, endpoints: initialEndpoints });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error.message).to.include('AgentDidApi: No changes detected');
+          }
+        });
+
+        it('should throw an error if the DID is not found', async () => {
+          try {
+            await testHarness.agent.identity.setDwnEndpoints({ didUri: 'did:method:xyz123', endpoints: ['https://example.com/dwn'] });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error.message).to.include('AgentIdentityApi: Failed to set DWN endpoints due to DID not found');
+          }
+        });
+
+        it('should add a DWN service if no services exist', async () => {
+          // create a new identity without any DWN endpoints or services
+          const identity = await testHarness.agent.identity.create({
+            didMethod : 'dht',
+            metadata  : { name: 'Alice' },
+          });
+
+          // control: get the service endpoints of the created DID, should fail
+          try {
+            await testHarness.agent.identity.getDwnEndpoints({ didUri: identity.did.uri });
+            expect.fail('should have thrown an error');
+          } catch(error: any) {
+            expect(error.message).to.include('Failed to dereference');
+          }
+
+          // set new endpoints
+          const newEndpoints = ['https://example.com/dwn2'];
+          await testHarness.agent.identity.setDwnEndpoints({ didUri: identity.did.uri, endpoints: newEndpoints });
+
+          // get the service endpoints of the updated DID
+          const updatedDwnEndpoints = await testHarness.agent.identity.getDwnEndpoints({ didUri: identity.did.uri });
+          expect(updatedDwnEndpoints).to.deep.equal(newEndpoints);
+        });
+
+        it('should add a DWN service if one does not exist in the services list', async () => {
+          // create a new identity without a DWN service
+          const identity = await testHarness.agent.identity.create({
+            didMethod  : 'dht',
+            didOptions : {
+              services: [{
+                id              : 'some-service', // non DWN service
+                type            : 'SomeService',
+                serviceEndpoint : ['https://example.com/some-service'],
+              }]
+            },
+            metadata: { name: 'Alice' },
+          });
+
+          // control: get the service endpoints of the created DID, should fail
+          try {
+            await testHarness.agent.identity.getDwnEndpoints({ didUri: identity.did.uri });
+            expect.fail('should have thrown an error');
+          } catch(error: any) {
+            expect(error.message).to.include('Failed to dereference');
+          }
+
+          // set new endpoints
+          const newEndpoints = ['https://example.com/dwn2'];
+          await testHarness.agent.identity.setDwnEndpoints({ didUri: identity.did.uri, endpoints: newEndpoints });
+
+          // get the service endpoints of the updated DID
+          const updatedDwnEndpoints = await testHarness.agent.identity.getDwnEndpoints({ didUri: identity.did.uri });
+          expect(updatedDwnEndpoints).to.deep.equal(newEndpoints);
         });
       });
 
