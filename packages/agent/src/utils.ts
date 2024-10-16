@@ -38,9 +38,6 @@ export async function getDwnServiceEndpointUrls(didUri: string, dereferencer: Di
   return [];
 }
 
-export async function setDwnServiceEndpointUrls(didUri: string, serviceEndpointUrls: string[], dereferencer: DidUrlDereferencer) {
-}
-
 export function getRecordAuthor(record: RecordsWriteMessage | RecordsDeleteMessage): string | undefined {
   return Message.getAuthor(record);
 }
