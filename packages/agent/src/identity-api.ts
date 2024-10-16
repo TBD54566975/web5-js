@@ -218,10 +218,24 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
     await this._store.delete({ id: didUri, agent: this.agent });
   }
 
+  /**
+   * Returns the DWN endpoints for the given DID.
+   *
+   * @param didUri - The DID URI to get the DWN endpoints for.
+   * @returns An array of DWN endpoints.
+   * @throws An error if the DID is not found, or no DWN service exists.
+   */
   public getDwnEndpoints({ didUri }: { didUri: string; }): Promise<string[]> {
     return getDwnServiceEndpointUrls(didUri, this.agent.did);
   }
 
+  /**
+   * Sets the DWN endpoints for the given DID.
+   *
+   * @param didUri - The DID URI to set the DWN endpoints for.
+   * @param endpoints - The array of DWN endpoints to set.
+   * @throws An error if the DID is not found, or if an update cannot be performed.
+   */
   public async setDwnEndpoints({ didUri, endpoints }: { didUri: string; endpoints: string[] }): Promise<void> {
     const bearerDid = await this.agent.did.get({ didUri });
     if (!bearerDid) {
