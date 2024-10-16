@@ -128,12 +128,12 @@ export class BearerDid {
       throw new Error(`DID document for '${this.uri}' is missing verification methods`);
     }
 
-    // Create a new `PortableDid` object to store the exported data.
-    let portableDid: PortableDid = {
+    // Create a new `PortableDid` copy object to store the exported data.
+    let portableDid: PortableDid = JSON.parse(JSON.stringify({
       uri      : this.uri,
       document : this.document,
       metadata : this.metadata
-    };
+    }));
 
     // If the BearerDid's key manager supports exporting private keys, add them to the portable DID.
     if ('exportKey' in this.keyManager && typeof this.keyManager.exportKey === 'function') {

@@ -10,7 +10,6 @@ import { BearerIdentity } from './bearer-identity.js';
 import { isPortableDid } from './prototyping/dids/utils.js';
 import { InMemoryIdentityStore } from './store-identity.js';
 import { getDwnServiceEndpointUrls } from './utils.js';
-import { canonicalize } from '@web5/crypto';
 import { PortableDid } from '@web5/dids';
 
 export interface IdentityApiParams<TKeyManager extends AgentKeyManager> {
@@ -229,7 +228,7 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
       throw new Error(`AgentIdentityApi: Failed to set DWN endpoints due to DID not found: ${didUri}`);
     }
 
-    const portableDid = JSON.parse(JSON.stringify(await bearerDid.export())) as PortableDid;
+    const portableDid = await bearerDid.export();
     const dwnService = portableDid.document.service?.find(service => service.id.endsWith('dwn'));
     if (dwnService) {
       // Update the existing DWN Service with the provided endpoints
