@@ -9,7 +9,7 @@ import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
 import photosProtocolDefinition from './fixtures/protocol-definitions/photos.json' assert { type: 'json' };
-import { DwnInterfaceName, DwnMethodName, Jws, PermissionsProtocol, Poller, Time } from '@tbd54566975/dwn-sdk-js';
+import { DwnConstant, DwnInterfaceName, DwnMethodName, Jws, PermissionsProtocol, Poller, Time } from '@tbd54566975/dwn-sdk-js';
 import { PermissionGrant } from '../src/permission-grant.js';
 import { Record } from '../src/record.js';
 import { TestDataGenerator } from './utils/test-data-generator.js';
@@ -1053,6 +1053,123 @@ describe('DwnApi', () => {
         expect(result.status.detail).to.equal('Accepted');
         expect(result.record).to.exist;
         expect(await result.record?.data.json()).to.deep.equal(dataJson);
+      });
+
+      it('ensure that a protocolRole used to query is also used to read the data of the result', async () => {
+        // Configure the photos protocol on Alice and Bob's local and remote DWNs.
+        const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
+          message: {
+            definition: photosProtocolDefinition
+          }
+        });
+        expect(bobProtocolStatus.code).to.equal(202);
+        const { status: bobRemoteProtocolStatus } = await bobProtocol.send(bobDid.uri);
+        expect(bobRemoteProtocolStatus.code).to.equal(202);
+
+        // Bob creates an album
+        const { status: albumCreateStatus, record: albumRecord } = await dwnBob.records.create({
+          data    : 'My Album',
+          message : {
+            protocol     : photosProtocolDefinition.protocol,
+            protocolPath : 'album',
+            schema       : photosProtocolDefinition.types.album.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(albumCreateStatus.code).to.equal(202);
+        const { status: albumSendStatus } = await albumRecord.send();
+        expect(albumSendStatus.code).to.equal(202);
+
+        // Bob makes Alice a `participant` and sends the record to her and his own remote node.
+        const { status: participantCreateStatus, record: participantRecord} = await dwnBob.records.create({
+          data    : 'test',
+          message : {
+            parentContextId : albumRecord.contextId,
+            recipient       : aliceDid.uri,
+            protocol        : photosProtocolDefinition.protocol,
+            protocolPath    : 'album/participant',
+            schema          : photosProtocolDefinition.types.participant.schema,
+            dataFormat      : 'text/plain'
+          }
+        });
+        expect(participantCreateStatus.code).to.equal(202);
+        const { status: bobParticipantSendStatus } = await participantRecord.send(bobDid.uri);
+        expect(bobParticipantSendStatus.code).to.equal(202);
+
+        // bob adds 3 photos to the album
+        for (let i = 0; i < 3; i++) {
+          const { status: photoCreateStatus, record: photoRecord } = await dwnBob.records.create({
+            data    : TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1),
+            message : {
+              parentContextId : albumRecord.contextId,
+              protocol        : photosProtocolDefinition.protocol,
+              protocolPath    : 'album/photo',
+              schema          : photosProtocolDefinition.types.photo.schema,
+              dataFormat      : 'text/plain',
+            }
+          });
+          expect(photoCreateStatus.code).to.equal(202);
+          const { status: photoSendStatus } = await photoRecord.send();
+          expect(photoSendStatus.code).to.equal(202);
+        }
+
+        // alice uses the role to add a photo to the album
+        const { status: photoCreateStatusAlice, record: photoRecordAlice } = await dwnAlice.records.create({
+          store   : false,
+          data    : TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1),
+          message : {
+            parentContextId : albumRecord.contextId,
+            protocol        : photosProtocolDefinition.protocol,
+            protocolPath    : 'album/photo',
+            protocolRole    : 'album/participant',
+            schema          : photosProtocolDefinition.types.photo.schema,
+            dataFormat      : 'text/plain'
+          }
+        });
+        expect(photoCreateStatusAlice.code).to.equal(202);
+        const { status: albumSendStatusAlice } = await photoRecordAlice.send(bobDid.uri);
+        expect(albumSendStatusAlice.code).to.equal(202);
+
+        //SANITY: Alice attempts to fetch the photos without the role, she should only see her own photo
+        const { status: alicePhotosReadResultWithoutRole, records: alicePhotosRecordsWithoutRole } = await dwnAlice.records.query({
+          from    : bobDid.uri,
+          message : {
+            filter: {
+              protocol     : photosProtocolDefinition.protocol,
+              protocolPath : 'album/photo',
+              contextId    : albumRecord.contextId
+            }
+          }
+        });
+        expect(alicePhotosReadResultWithoutRole.code).to.equal(200);
+        expect(alicePhotosRecordsWithoutRole).to.exist;
+        expect(alicePhotosRecordsWithoutRole).to.have.lengthOf(1);
+
+        // Attempt to read the data of the photo, which should succeed
+        const readResultWithoutRole = await alicePhotosRecordsWithoutRole[0].data.text();
+        expect(readResultWithoutRole.length).to.equal(DwnConstant.maxDataSizeAllowedToBeEncoded + 1);
+
+        // Alice fetches all of the photos from the album
+        const alicePhotosReadResult = await dwnAlice.records.query({
+          from    : bobDid.uri,
+          message : {
+            protocolRole : 'album/participant',
+            filter       : {
+              protocol     : photosProtocolDefinition.protocol,
+              protocolPath : 'album/photo',
+              contextId    : albumRecord.contextId
+            }
+          }
+        });
+        expect(alicePhotosReadResult.status.code).to.equal(200);
+        expect(alicePhotosReadResult.records).to.exist;
+        expect(alicePhotosReadResult.records).to.have.lengthOf(4);
+
+        // attempt to read data from the photos
+        for (const record of alicePhotosReadResult.records) {
+          const readResult = await record.data.text();
+          expect(readResult.length).to.equal(DwnConstant.maxDataSizeAllowedToBeEncoded + 1);
+        }
       });
 
       it('creates a role record for another user that they can use to create role-based records', async () => {
