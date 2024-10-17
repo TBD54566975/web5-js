@@ -68,4 +68,8 @@ export class AgentSyncApi implements SyncEngine {
   public stopSync(timeout?: number): Promise<void> {
     return this._syncEngine.stopSync(timeout);
   }
+
+  public syncOnce(params: {syncDirection: string } = {syncDirection: 'push'}): Promise<void> {
+    return this._syncEngine.syncOnce(params);
+  }
 }
