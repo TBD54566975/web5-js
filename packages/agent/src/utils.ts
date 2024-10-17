@@ -4,7 +4,7 @@ import { PaginationCursor, RecordsDeleteMessage, RecordsWriteMessage } from '@tb
 import { Readable } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { ReadableWebToNodeStream } from 'readable-web-to-node-stream';
-import { DateSort, DwnInterfaceName, DwnMethodName, Message, Records, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
+import { DateSort, DwnInterfaceName, DwnMethodName, Message, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 
 export function blobToIsomorphicNodeReadable(blob: Blob): Readable {
   return webReadableToIsomorphicNodeReadable(blob.stream() as ReadableStream<any>);
