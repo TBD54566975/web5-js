@@ -32,7 +32,7 @@
         {
           "role": "friend",
           "can": [
-            "create", "update"
+            "create", "update", "read", "query", "subscribe"
           ]
         }
       ],
@@ -54,7 +54,7 @@
           {
             "role": "album/participant",
             "can": [
-              "create", "update"
+              "create", "update", "read", "query", "subscribe"
             ]
           }
         ]
@@ -64,7 +64,7 @@
           {
             "role": "album/participant",
             "can": [
-              "create", "update"
+              "create", "update", "read", "query", "subscribe"
             ]
           },
           {

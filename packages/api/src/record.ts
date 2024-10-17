@@ -183,6 +183,9 @@ export type RecordDeleteParams = {
 
   /** The timestamp indicating when the record was deleted. */
   dateModified?: DwnMessageDescriptor[DwnInterface.RecordsDelete]['messageTimestamp'];
+
+  /** The protocol role under which this record will be deleted. */
+  protocolRole?: RecordOptions['protocolRole'];
 };
 
 /**
@@ -353,12 +356,14 @@ export class Record implements RecordModel {
         descriptor    : this._descriptor,
         attestation   : this._attestation,
         authorization : this._authorization,
+        protocolRole  : this._protocolRole,
         encryption    : this._encryption,
       }));
     } else {
       message = JSON.parse(JSON.stringify({
         descriptor    : this._descriptor,
         authorization : this._authorization,
+        protocolRole  : this._protocolRole,
       }));
     }
 
@@ -1023,7 +1028,7 @@ export class Record implements RecordModel {
   private async readRecordData({ target, isRemote }: { target: string, isRemote: boolean }) {
     const readRequest: ProcessDwnRequest<DwnInterface.RecordsRead> = {
       author        : this._connectedDid,
-      messageParams : { filter: { recordId: this.id } },
+      messageParams : { filter: { recordId: this.id }, protocolRole: this._protocolRole },
       messageType   : DwnInterface.RecordsRead,
       target,
     };
