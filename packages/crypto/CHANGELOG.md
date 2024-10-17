@@ -1,5 +1,12 @@
 # @web5/crypto
 
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [[`bfa0417`](https://github.com/TBD54566975/web5-js/commit/bfa0417a2e9fc1300c5e604bea19b75ab1c73645)]:
+  - @web5/common@1.1.0
+
 ## 1.0.5
 
 ### Patch Changes
