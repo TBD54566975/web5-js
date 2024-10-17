@@ -1,5 +1,12 @@
 # @web5/browser
 
+## 0.0.3
+
+### Patch Changes
+
+- Updated dependencies [[`bd1cb00`](https://github.com/TBD54566975/web5-js/commit/bd1cb00616029b0d18687b597e90d3b7c4dbeae1), [`3f39bf1`](https://github.com/TBD54566975/web5-js/commit/3f39bf1d14cf835a2959b5386a82ff7228d31e6c)]:
+  - @web5/dids@1.2.0
+
 ## 0.0.2
 
 ### Patch Changes
