@@ -21,6 +21,7 @@ import {
   SendDwnRequest,
   PermissionsApi,
   AgentPermissionsApi,
+  getRecordProtocolRole
 } from '@web5/agent';
 
 import { Convert, isEmptyObject, NodeStream, removeUndefinedProperties, Stream } from '@web5/common';
@@ -150,7 +151,7 @@ export type RecordUpdateParams = {
   datePublished?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['datePublished'];
 
   /** The protocol role under which this record is written. */
-  protocolRole?: string;
+  protocolRole?: RecordOptions['protocolRole'];
 
   /** The published status of the record. */
   published?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['published'];
@@ -224,8 +225,6 @@ export class Record implements RecordModel {
   private _readableStream?: Readable;
   /** The origin DID if the record was fetched from a remote DWN. */
   private _remoteOrigin?: string;
-  /** The protocolRole to use when reading the record */
-  private _protocolRole?: string;
 
   // Private variables for DWN `RecordsWrite` message properties.
 
@@ -251,6 +250,8 @@ export class Record implements RecordModel {
   private _initialWriteSigned: boolean;
   /** Unique identifier of the record. */
   private _recordId: string;
+  /** Role under which the record is written. */
+  private _protocolRole?: RecordOptions['protocolRole'];
 
   /** The `RecordsWriteMessage` descriptor unless the record is in a deleted state */
   private get _recordsWriteDescriptor() {
@@ -329,6 +330,9 @@ export class Record implements RecordModel {
 
   /** Record's signatures attestation */
   get attestation(): DwnMessage[DwnInterface.RecordsWrite]['attestation'] | undefined { return this._attestation; }
+
+  /** Role under which the author is writing the record */
+  get protocolRole() { return this._protocolRole; }
 
   /** Record's deleted state (true/false) */
   get deleted() { return isDwnMessage(DwnInterface.RecordsDelete, this.rawMessage); }
@@ -782,6 +786,7 @@ export class Record implements RecordModel {
 
       // Only update the local Record instance mutable properties if the record was successfully (over)written.
       this._authorization = responseMessage.authorization;
+      this._protocolRole = updateMessage.protocolRole;
       mutableDescriptorProperties.forEach(property => {
         this._descriptor[property] = responseMessage.descriptor[property];
       });
@@ -831,8 +836,7 @@ export class Record implements RecordModel {
 
     // Check to see if the provided protocolRole is different from the current protocolRole
     // If so we need to construct a delete message with the new protocolRole, otherwise we can use the existing
-    // NOTE: currently this is testing the instance _protocolRole, not the actual signature payload.
-    const differentRole = deleteParams?.protocolRole ? this._protocolRole !== deleteParams.protocolRole : false;
+    const differentRole = deleteParams?.protocolRole ? getRecordProtocolRole(this.rawMessage)  !== deleteParams.protocolRole : false;
     if (this.deleted && !differentRole) {
       // if we have a delete message we can just use it
       deleteOptions.rawMessage = this.rawMessage as DwnMessage[DwnInterface.RecordsDelete];
