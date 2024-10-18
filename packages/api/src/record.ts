@@ -62,6 +62,9 @@ export type RecordModel = ImmutableRecordProperties & OptionalRecordProperties &
 
   /** The timestamp indicating when the record was last modified. */
   messageTimestamp?: string;
+
+  /** The protocol role under which this record is written. */
+  protocolRole?: RecordOptions['protocolRole'];
 }
 
 /**
@@ -651,6 +654,7 @@ export class Record implements RecordModel {
       parentId         : this.parentId,
       protocol         : this.protocol,
       protocolPath     : this.protocolPath,
+      protocolRole     : this.protocolRole,
       published        : this.published,
       recipient        : this.recipient,
       recordId         : this.id,
@@ -834,11 +838,11 @@ export class Record implements RecordModel {
       store
     };
 
-    // Check to see if the provided protocolRole is different from the current protocolRole
-    // If so we need to construct a delete message with the new protocolRole, otherwise we can use the existing
+    // Check to see if the provided protocolRole within the deleteParams is different from the current protocolRole.
     const differentRole = deleteParams?.protocolRole ? getRecordProtocolRole(this.rawMessage)  !== deleteParams.protocolRole : false;
+    // If the record is already in a deleted state but the protocolRole is different, we need to construct a delete message with the new protocolRole
+    // otherwise we can just use the existing delete message.
     if (this.deleted && !differentRole) {
-      // if we have a delete message we can just use it
       deleteOptions.rawMessage = this.rawMessage as DwnMessage[DwnInterface.RecordsDelete];
     } else {
       // otherwise we construct a delete message given the `RecordDeleteParams`
