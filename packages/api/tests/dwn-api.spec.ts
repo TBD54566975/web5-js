@@ -3,7 +3,7 @@ import type { BearerDid } from '@web5/dids';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { Web5UserAgent } from '@web5/user-agent';
-import { AgentPermissionsApi, DwnDateSort, DwnInterface, DwnProtocolDefinition, getRecordAuthor, Oidc, PlatformAgentTestHarness, ProcessDwnRequest, SendDwnRequest, WalletConnect } from '@web5/agent';
+import { AgentPermissionsApi, DwnDateSort, DwnInterface, DwnProtocolDefinition, getRecordAuthor, Oidc, PlatformAgentTestHarness, ProcessDwnRequest, WalletConnect } from '@web5/agent';
 
 import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';

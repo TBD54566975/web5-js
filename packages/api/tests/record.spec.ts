@@ -1,5 +1,5 @@
 import type { BearerDid ,PortableDid } from '@web5/dids';
-import type { DwnMessageParams, DwnProtocolDefinition, DwnPublicKeyJwk, DwnSigner, ProcessDwnRequest, SendDwnRequest } from '@web5/agent';
+import type { DwnMessageParams, DwnProtocolDefinition, DwnPublicKeyJwk, DwnSigner, ProcessDwnRequest } from '@web5/agent';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
