@@ -1,0 +1,65 @@
+{
+  "protocol": "http://notes-protocol.xyz",
+  "published": true,
+  "types": {
+    "note": {
+      "schema": "http://notes-protocol.xyz/schema/note",
+      "dataFormats": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    "comment": {
+      "schema": "http://notes-protocol.xyz/schema/comment",
+      "dataFormats": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    "friend" : {
+      "schema": "http://notes-protocol.xyz/schema/friend",
+      "dataFormats": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    "coAuthor" : {
+      "schema": "http://notes-protocol.xyz/schema/coAuthor",
+      "dataFormats": [
+        "text/plain",
+        "application/json"
+      ]
+    }
+  },
+  "structure": {
+    "friend" :{
+      "$role": true
+    },
+    "note": {
+      "coAuthor" : {
+        "$role": true
+      },
+      "$actions": [
+        {
+          "role": "friend",
+          "can": ["read", "query", "subscribe"]
+        },
+        {
+          "role": "note/coAuthor",
+          "can": [ "co-update", "co-delete" ]
+        }
+      ],
+      "comment": {
+        "$actions": [
+          {
+            "role": "friend",
+            "can": ["create", "update", "delete", "read", "query", "subscribe"]
+          }, {
+            "role": "note/coAuthor",
+            "can": ["create", "update", "delete", "co-delete", "read", "query", "subscribe"]
+          }
+        ]
+      }
+    }
+  }
+}

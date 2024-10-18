@@ -699,6 +699,7 @@ export class DwnApi {
              */
             remoteOrigin : request.from,
             delegateDid  : this.delegateDid,
+            protocolRole : agentRequest.messageParams.protocolRole,
             ...entry as DwnMessage[DwnInterface.RecordsWrite]
           };
           const record = new Record(this.agent, recordOptions, this.permissionsApi);
@@ -829,6 +830,7 @@ export class DwnApi {
             connectedDid   : this.connectedDid,
             delegateDid    : this.delegateDid,
             permissionsApi : this.permissionsApi,
+            protocolRole   : request.message.protocolRole,
             request
           })
         };

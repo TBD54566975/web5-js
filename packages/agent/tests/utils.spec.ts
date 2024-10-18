@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 
 import { DateSort, Message, TestDataGenerator } from '@tbd54566975/dwn-sdk-js';
-import { getPaginationCursor, getRecordAuthor, getRecordMessageCid } from '../src/utils.js';
+import { getPaginationCursor, getRecordAuthor, getRecordMessageCid, getRecordProtocolRole } from '../src/utils.js';
 
 describe('Utils', () => {
   describe('getPaginationCursor', () => {
@@ -82,6 +82,30 @@ describe('Utils', () => {
       const deleteAuthorFromFunction = getRecordAuthor(recordsDeleteMessage);
       expect(deleteAuthorFromFunction).to.not.be.undefined;
       expect(deleteAuthorFromFunction!).to.equal(recordsDeleteAuthor.did);
+    });
+  });
+
+  describe('getRecordProtocolRole', () => {
+    it('gets a protocol role from a RecordsWrite', async () => {
+      const recordsWrite = await TestDataGenerator.generateRecordsWrite({ protocolRole: 'some-role' });
+      const role = getRecordProtocolRole(recordsWrite.message);
+      expect(role).to.equal('some-role');
+    });
+
+    it('gets a protocol role from a RecordsDelete', async () => {
+      const recordsDelete = await TestDataGenerator.generateRecordsDelete({ protocolRole: 'some-role' });
+      const role = getRecordProtocolRole(recordsDelete.message);
+      expect(role).to.equal('some-role');
+    });
+
+    it('returns undefined if no role is defined', async () => {
+      const recordsWrite = await TestDataGenerator.generateRecordsWrite();
+      const writeRole = getRecordProtocolRole(recordsWrite.message);
+      expect(writeRole).to.be.undefined;
+
+      const recordsDelete = await TestDataGenerator.generateRecordsDelete();
+      const deleteRole = getRecordProtocolRole(recordsDelete.message);
+      expect(deleteRole).to.be.undefined;
     });
   });
 });

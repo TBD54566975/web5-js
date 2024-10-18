@@ -9,7 +9,8 @@ import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
 import photosProtocolDefinition from './fixtures/protocol-definitions/photos.json' assert { type: 'json' };
-import { DwnInterfaceName, DwnMethodName, Jws, PermissionsProtocol, Poller, Time } from '@tbd54566975/dwn-sdk-js';
+import notesProtocolDefinition from './fixtures/protocol-definitions/notes.json' assert { type: 'json' };
+import { DwnConstant, DwnInterfaceName, DwnMethodName, Jws, PermissionsProtocol, Poller, Time } from '@tbd54566975/dwn-sdk-js';
 import { PermissionGrant } from '../src/permission-grant.js';
 import { Record } from '../src/record.js';
 import { TestDataGenerator } from './utils/test-data-generator.js';
@@ -2079,6 +2080,80 @@ describe('DwnApi', () => {
         expect(fooBarResult.records![0].id).to.equal(record.id);
         expect(fooBarResult.records![0].tags).to.deep.equal({ foo: 'bar' });
       });
+
+      it('ensures that a protocolRole used to query is also used to read the data of the resulted records', async () => {
+        const protocol = {
+          ...notesProtocolDefinition,
+          protocol: 'http://example.com/notes' + TestDataGenerator.randomString(15)
+        };
+
+        // Bob configures the notes protocol for himself
+        const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
+          message: {
+            definition: protocol
+          }
+        });
+        expect(bobProtocolStatus.code).to.equal(202);
+        const { status: bobRemoteProtocolStatus } = await bobProtocol.send(bobDid.uri);
+        expect(bobRemoteProtocolStatus.code).to.equal(202);
+
+        // Bob creates a few notes ensuring that the data is larger than the max encoded size
+        // that way the data will be requested with a separate `read` request
+        const recordData: Map<string, string> = new Map();
+        for (let i = 0; i < 3; i++) {
+          const data = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1);
+          const { status: noteCreateStatus, record: noteRecord } = await dwnBob.records.create({
+            data,
+            message: {
+              protocol     : protocol.protocol,
+              protocolPath : 'note',
+              schema       : protocol.types.note.schema,
+              dataFormat   : 'text/plain',
+            }
+          });
+          expect(noteCreateStatus.code).to.equal(202);
+          const { status: noteSendStatus } = await noteRecord.send();
+          expect(noteSendStatus.code).to.equal(202);
+          recordData.set(noteRecord.id, data);
+        }
+
+        // Bob makes Alice a `friend` to allow her to read and comment on his notes
+        const { status: friendCreateStatus, record: friendRecord} = await dwnBob.records.create({
+          data    : 'friend!',
+          message : {
+            recipient    : aliceDid.uri,
+            protocol     : protocol.protocol,
+            protocolPath : 'friend',
+            schema       : protocol.types.friend.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(friendCreateStatus.code).to.equal(202);
+        const { status: bobFriendSendStatus } = await friendRecord.send(bobDid.uri);
+        expect(bobFriendSendStatus.code).to.equal(202);
+
+        // alice uses the role to query for the available notes
+        const { status: notesQueryStatus, records: noteRecords } = await dwnAlice.records.query({
+          from    : bobDid.uri,
+          message : {
+            protocolRole : 'friend',
+            filter       : {
+              protocol     : protocol.protocol,
+              protocolPath : 'note'
+            }
+          }
+        });
+        expect(notesQueryStatus.code).to.equal(200);
+        expect(noteRecords).to.exist;
+        expect(noteRecords).to.have.lengthOf(3);
+
+        // Alice attempts to read the data of the notes, which should succeed
+        for (const record of noteRecords) {
+          const readResult = await record.data.text();
+          const expectedData = recordData.get(record.id);
+          expect(readResult).to.equal(expectedData);
+        }
+      });
     });
   });
 
@@ -2444,6 +2519,91 @@ describe('DwnApi', () => {
           expect(record.toJSON()).to.deep.equal(writeResult2.record.toJSON());
           expect(record.deleted).to.be.false;
         });
+      });
+
+      it('ensures that a protocolRole used to subscribe is also used to read the data of the resulted records', async () => {
+        const protocol = {
+          ...notesProtocolDefinition,
+          protocol: 'http://example.com/notes' + TestDataGenerator.randomString(15)
+        };
+
+        // Bob configures the notes protocol for himself
+        const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
+          message: {
+            definition: protocol
+          }
+        });
+        expect(bobProtocolStatus.code).to.equal(202);
+        const { status: bobRemoteProtocolStatus } = await bobProtocol.send(bobDid.uri);
+        expect(bobRemoteProtocolStatus.code).to.equal(202);
+
+
+        // Bob makes Alice a `friend` to allow her to read and comment on his notes
+        const { status: friendCreateStatus, record: friendRecord} = await dwnBob.records.create({
+          data    : 'friend!',
+          message : {
+            recipient    : aliceDid.uri,
+            protocol     : protocol.protocol,
+            protocolPath : 'friend',
+            schema       : protocol.types.friend.schema,
+            dataFormat   : 'text/plain'
+          }
+        });
+        expect(friendCreateStatus.code).to.equal(202);
+        const { status: bobFriendSendStatus } = await friendRecord.send(bobDid.uri);
+        expect(bobFriendSendStatus.code).to.equal(202);
+
+        // Alice subscribes to the notes protocol using the role
+        const notes: Map<string, Record> = new Map();
+        const subscriptionHandler = async (record: Record) => {
+          notes.set(record.id, record);
+        };
+
+        // alice uses the role to query for the available notes
+        const { status: notesSubscribeStatus, subscription } = await dwnAlice.records.subscribe({
+          from    : bobDid.uri,
+          message : {
+            protocolRole : 'friend',
+            filter       : {
+              protocol     : protocol.protocol,
+              protocolPath : 'note'
+            }
+          },
+          subscriptionHandler
+        });
+        expect(notesSubscribeStatus.code).to.equal(200);
+        expect(subscription).to.exist;
+
+        // Bob creates a few notes ensuring that the data is larger than the max encoded size
+        // that way the data will be requested with a separate `read` request
+        const recordData: Map<string, string> = new Map();
+        for (let i = 0; i < 3; i++) {
+          const data = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1);
+          const { status: noteCreateStatus, record: noteRecord } = await dwnBob.records.create({
+            data,
+            message: {
+              protocol     : protocol.protocol,
+              protocolPath : 'note',
+              schema       : protocol.types.note.schema,
+              dataFormat   : 'text/plain',
+            }
+          });
+          expect(noteCreateStatus.code).to.equal(202);
+          const { status: noteSendStatus } = await noteRecord.send();
+          expect(noteSendStatus.code).to.equal(202);
+          recordData.set(noteRecord.id, data);
+        }
+
+        // poll for the note records to be received
+        await Poller.pollUntilSuccessOrTimeout(async () => {
+          expect(notes.size).to.equal(3);
+        });
+
+        for (const record of notes.values()) {
+          const readResult = await record.data.text();
+          const expectedData = recordData.get(record.id);
+          expect(readResult).to.equal(expectedData);
+        }
       });
     });
   });

@@ -13,11 +13,12 @@ import { dataToBlob } from '../src/utils.js';
 import { testDwnUrl } from './utils/test-config.js';
 import { TestDataGenerator } from './utils/test-data-generator.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
+import notesProtocolDefinition from './fixtures/protocol-definitions/notes.json' assert { type: 'json' };
 
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
 import { webcrypto } from 'node:crypto';
-import { Jws, Message, Poller } from '@tbd54566975/dwn-sdk-js';
+import { Jws, Message, Poller, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 import { Web5 } from '../src/web5.js';
 // @ts-ignore
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
@@ -3086,6 +3087,126 @@ describe('Record', () => {
       // bob is the author
       expect(readResultAlice.record!.author).to.equal(bobDid.uri);
     });
+
+    it('updates a record using a different protocolRole than the one used when querying for/reading the record', async () => {
+      const protocol = {
+        ...notesProtocolDefinition,
+        protocol: 'http://example.com/notes' + TestDataGenerator.randomString(15)
+      };
+
+      // Bob configures the notes protocol for himself
+      const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
+        message: {
+          definition: protocol
+        }
+      });
+      expect(bobProtocolStatus.code).to.equal(202);
+      const { status: bobProtocolSendStatus } = await bobProtocol.send(bobDid.uri);
+      expect(bobProtocolSendStatus.code).to.equal(202);
+
+      // Alice must also configure the protocol to make updates.
+      // NOTE: This is not desireable and there is an issue to address this:
+      // https://github.com/TBD54566975/web5-js/issues/955
+      const { status: aliceProtocolStatus, protocol: aliceProtocol } = await dwnAlice.protocols.configure({
+        message: {
+          definition: protocol
+        }
+      });
+      expect(aliceProtocolStatus.code).to.equal(202);
+      const { status: aliceProtocolSend } = await aliceProtocol.send(aliceDid.uri);
+      expect(aliceProtocolSend.code).to.equal(202);
+
+      // Bob creates a few notes ensuring that the data is larger than the max encoded size
+      // that way the data will be requested with a separate `read` request
+      const records: Set<string> = new Set();
+      for (let i = 0; i < 3; i++) {
+        const data = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1);
+        const { status: noteCreateStatus, record: noteRecord } = await dwnBob.records.create({
+          data,
+          message: {
+            protocol     : protocol.protocol,
+            protocolPath : 'note',
+            schema       : protocol.types.note.schema,
+            dataFormat   : 'text/plain',
+          }
+        });
+        expect(noteCreateStatus.code).to.equal(202);
+        const { status: noteSendStatus } = await noteRecord.send();
+        expect(noteSendStatus.code).to.equal(202);
+        records.add(noteRecord.id);
+      }
+
+      // Bob makes Alice a `friend` to allow her to read and comment on his notes
+      const { status: friendCreateStatus, record: friendRecord} = await dwnBob.records.create({
+        data    : 'friend!',
+        message : {
+          recipient    : aliceDid.uri,
+          protocol     : protocol.protocol,
+          protocolPath : 'friend',
+          schema       : protocol.types.friend.schema,
+          dataFormat   : 'text/plain'
+        }
+      });
+      expect(friendCreateStatus.code).to.equal(202);
+      const { status: bobFriendSendStatus } = await friendRecord.send(bobDid.uri);
+      expect(bobFriendSendStatus.code).to.equal(202);
+
+      // Bob makes alice a 'coAuthor' of one of his notes
+      const aliceCoAuthorNoteId = records.keys().next().value;
+      const { status: coAuthorStatus, record: coAuthorRecord } = await dwnBob.records.create({
+        data    : aliceDid.uri,
+        message : {
+          parentContextId : aliceCoAuthorNoteId,
+          recipient       : aliceDid.uri,
+          protocol        : protocol.protocol,
+          protocolPath    : 'note/coAuthor',
+          schema          : protocol.types.coAuthor.schema,
+          dataFormat      : 'text/plain'
+        }
+      });
+      expect(coAuthorStatus.code).to.equal(202);
+      const { status: coAuthorSendStatus } = await coAuthorRecord.send(bobDid.uri);
+      expect(coAuthorSendStatus.code).to.equal(202);
+
+      // Alice querying for bob's notes using her friend role
+      const { status: aliceQueryStatus, records: bobNotesAliceQuery } = await dwnAlice.records.query({
+        from    : bobDid.uri,
+        message : {
+          protocolRole : 'friend',
+          filter       : {
+            protocol     : protocol.protocol,
+            protocolPath : 'note',
+          }
+        }
+      });
+      expect(aliceQueryStatus.code).to.equal(200);
+      expect(bobNotesAliceQuery).to.not.be.undefined;
+      expect(bobNotesAliceQuery.length).to.equal(records.size);
+
+      // Alice looks for the record she has a co-author rule on
+      const coAuthorNote = bobNotesAliceQuery.find((record) => record.id === aliceCoAuthorNoteId);
+      expect(coAuthorNote).to.not.be.undefined;
+
+      // Alice must import the record to be able to update it
+      // NOTE this should be removed after: https://github.com/TBD54566975/web5-js/issues/955
+      const { status: importStatus } = await coAuthorNote.import();
+      expect(importStatus.code).to.equal(202);
+
+      // Alice updates the co-author note without providing a new role
+      const { status: updateStatus } = await coAuthorNote!.update({ data: 'updated note' });
+      expect(updateStatus.code).to.equal(202);
+
+      // This is accepted locally but will fail when sending the update to the remote DWN
+      const { status: sendStatus } = await coAuthorNote.send(bobDid.uri);
+      expect(sendStatus.code).to.equal(401);
+
+      // Now update the record with the correct role
+      const { status: updateStatusCoAuthor } = await coAuthorNote!.update({ data: 'updated note', protocolRole: 'note/coAuthor' });
+      expect(updateStatusCoAuthor.code).to.equal(202);
+
+      const { status: sendStatusCoAuthor } = await coAuthorNote.send(bobDid.uri);
+      expect(sendStatusCoAuthor.code).to.equal(202);
+    });
   });
 
   describe('delete()', () => {
@@ -3658,6 +3779,119 @@ describe('Record', () => {
       expect(bobsRecordToDelete.deleted).to.be.true;
 
       await subscription.close();
+    });
+
+    it('deletes a record using a different protocolRole than the one used when querying for/reading the record', async () => {
+      const protocol = {
+        ...notesProtocolDefinition,
+        protocol: 'http://example.com/notes' + TestDataGenerator.randomString(15)
+      };
+
+      // Bob configures the notes protocol for himself
+      const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
+        message: {
+          definition: protocol
+        }
+      });
+      expect(bobProtocolStatus.code).to.equal(202);
+      const { status: bobProtocolSendStatus } = await bobProtocol.send(bobDid.uri);
+      expect(bobProtocolSendStatus.code).to.equal(202);
+
+      // Alice must also configure the protocol to make updates.
+      // NOTE: This is not desireable and there is an issue to address this:
+      // https://github.com/TBD54566975/web5-js/issues/955
+      const { status: aliceProtocolStatus, protocol: aliceProtocol } = await dwnAlice.protocols.configure({
+        message: {
+          definition: protocol
+        }
+      });
+      expect(aliceProtocolStatus.code).to.equal(202);
+      const { status: aliceProtocolSend } = await aliceProtocol.send(aliceDid.uri);
+      expect(aliceProtocolSend.code).to.equal(202);
+
+      // Bob creates a few notes ensuring that the data is larger than the max encoded size
+      // that way the data will be requested with a separate `read` request
+      const records: Set<string> = new Set();
+      for (let i = 0; i < 3; i++) {
+        const data = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1);
+        const { status: noteCreateStatus, record: noteRecord } = await dwnBob.records.create({
+          data,
+          message: {
+            protocol     : protocol.protocol,
+            protocolPath : 'note',
+            schema       : protocol.types.note.schema,
+            dataFormat   : 'text/plain',
+          }
+        });
+        expect(noteCreateStatus.code).to.equal(202);
+        const { status: noteSendStatus } = await noteRecord.send();
+        expect(noteSendStatus.code).to.equal(202);
+        records.add(noteRecord.id);
+      }
+
+      // Bob makes Alice a `friend` to allow her to read and comment on his notes
+      const { status: friendCreateStatus, record: friendRecord} = await dwnBob.records.create({
+        data    : 'friend!',
+        message : {
+          recipient    : aliceDid.uri,
+          protocol     : protocol.protocol,
+          protocolPath : 'friend',
+          schema       : protocol.types.friend.schema,
+          dataFormat   : 'text/plain'
+        }
+      });
+      expect(friendCreateStatus.code).to.equal(202);
+      const { status: bobFriendSendStatus } = await friendRecord.send(bobDid.uri);
+      expect(bobFriendSendStatus.code).to.equal(202);
+
+      // Bob makes alice a 'coAuthor' of one of his notes
+      const aliceCoAuthorNoteId = records.keys().next().value;
+      const { status: coAuthorStatus, record: coAuthorRecord } = await dwnBob.records.create({
+        data    : aliceDid.uri,
+        message : {
+          parentContextId : aliceCoAuthorNoteId,
+          recipient       : aliceDid.uri,
+          protocol        : protocol.protocol,
+          protocolPath    : 'note/coAuthor',
+          schema          : protocol.types.coAuthor.schema,
+          dataFormat      : 'text/plain'
+        }
+      });
+      expect(coAuthorStatus.code).to.equal(202);
+      const { status: coAuthorSendStatus } = await coAuthorRecord.send(bobDid.uri);
+      expect(coAuthorSendStatus.code).to.equal(202);
+
+      // Alice querying for bob's notes using her friend role
+      const { status: aliceQueryStatus, records: bobNotesAliceQuery } = await dwnAlice.records.query({
+        from    : bobDid.uri,
+        message : {
+          protocolRole : 'friend',
+          filter       : {
+            protocol     : protocol.protocol,
+            protocolPath : 'note',
+          }
+        }
+      });
+      expect(aliceQueryStatus.code).to.equal(200);
+      expect(bobNotesAliceQuery).to.not.be.undefined;
+      expect(bobNotesAliceQuery.length).to.equal(records.size);
+
+      // Alice looks for the record she has a co-author rule on
+      const coDeleteNote = bobNotesAliceQuery.find((record) => record.id === aliceCoAuthorNoteId);
+      expect(coDeleteNote).to.not.be.undefined;
+
+      const { status: deleteStatus } = await coDeleteNote.delete({ store: false });
+      expect(deleteStatus.code).to.equal(202);
+
+      const { status: sendDeleteStatus } = await coDeleteNote.send(bobDid.uri);
+      expect(sendDeleteStatus.code).to.equal(401);
+
+      // Now update the record with the correct role
+      const { status: updateStatusCoAuthor } = await coDeleteNote.delete({ protocolRole: 'note/coAuthor', store: false });
+      expect(updateStatusCoAuthor.code).to.equal(202, `delete: ${updateStatusCoAuthor.detail}`);
+
+      const { status: sendStatusCoAuthor } = await coDeleteNote.send(bobDid.uri);
+      expect(sendStatusCoAuthor.code).to.equal(202, `delete send: ${sendStatusCoAuthor.detail}`);
     });
   });
 
