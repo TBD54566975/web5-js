@@ -2082,10 +2082,15 @@ describe('DwnApi', () => {
       });
 
       it('ensures that a protocolRole used to query is also used to read the data of the resulted records', async () => {
+        const protocol = {
+          ...notesProtocolDefinition,
+          protocol: 'http://example.com/notes' + TestDataGenerator.randomString(15)
+        };
+
         // Bob configures the notes protocol for himself
         const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
           message: {
-            definition: notesProtocolDefinition
+            definition: protocol
           }
         });
         expect(bobProtocolStatus.code).to.equal(202);
@@ -2100,9 +2105,9 @@ describe('DwnApi', () => {
           const { status: noteCreateStatus, record: noteRecord } = await dwnBob.records.create({
             data,
             message: {
-              protocol     : notesProtocolDefinition.protocol,
+              protocol     : protocol.protocol,
               protocolPath : 'note',
-              schema       : notesProtocolDefinition.types.note.schema,
+              schema       : protocol.types.note.schema,
               dataFormat   : 'text/plain',
             }
           });
@@ -2117,9 +2122,9 @@ describe('DwnApi', () => {
           data    : 'friend!',
           message : {
             recipient    : aliceDid.uri,
-            protocol     : notesProtocolDefinition.protocol,
+            protocol     : protocol.protocol,
             protocolPath : 'friend',
-            schema       : notesProtocolDefinition.types.friend.schema,
+            schema       : protocol.types.friend.schema,
             dataFormat   : 'text/plain'
           }
         });
@@ -2133,7 +2138,7 @@ describe('DwnApi', () => {
           message : {
             protocolRole : 'friend',
             filter       : {
-              protocol     : notesProtocolDefinition.protocol,
+              protocol     : protocol.protocol,
               protocolPath : 'note'
             }
           }
@@ -2517,10 +2522,15 @@ describe('DwnApi', () => {
       });
 
       it('ensures that a protocolRole used to subscribe is also used to read the data of the resulted records', async () => {
+        const protocol = {
+          ...notesProtocolDefinition,
+          protocol: 'http://example.com/notes' + TestDataGenerator.randomString(15)
+        };
+
         // Bob configures the notes protocol for himself
         const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
           message: {
-            definition: notesProtocolDefinition
+            definition: protocol
           }
         });
         expect(bobProtocolStatus.code).to.equal(202);
@@ -2533,9 +2543,9 @@ describe('DwnApi', () => {
           data    : 'friend!',
           message : {
             recipient    : aliceDid.uri,
-            protocol     : notesProtocolDefinition.protocol,
+            protocol     : protocol.protocol,
             protocolPath : 'friend',
-            schema       : notesProtocolDefinition.types.friend.schema,
+            schema       : protocol.types.friend.schema,
             dataFormat   : 'text/plain'
           }
         });
@@ -2555,7 +2565,7 @@ describe('DwnApi', () => {
           message : {
             protocolRole : 'friend',
             filter       : {
-              protocol     : notesProtocolDefinition.protocol,
+              protocol     : protocol.protocol,
               protocolPath : 'note'
             }
           },
@@ -2572,9 +2582,9 @@ describe('DwnApi', () => {
           const { status: noteCreateStatus, record: noteRecord } = await dwnBob.records.create({
             data,
             message: {
-              protocol     : notesProtocolDefinition.protocol,
+              protocol     : protocol.protocol,
               protocolPath : 'note',
-              schema       : notesProtocolDefinition.types.note.schema,
+              schema       : protocol.types.note.schema,
               dataFormat   : 'text/plain',
             }
           });
