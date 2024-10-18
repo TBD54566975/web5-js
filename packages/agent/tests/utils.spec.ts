@@ -1,9 +1,18 @@
 import { expect } from 'chai';
+import sinon from 'sinon';
 
-import { DateSort, Message, TestDataGenerator } from '@tbd54566975/dwn-sdk-js';
+import { DateSort, Jws, Message, TestDataGenerator } from '@tbd54566975/dwn-sdk-js';
 import { getPaginationCursor, getRecordAuthor, getRecordMessageCid, getRecordProtocolRole } from '../src/utils.js';
 
 describe('Utils', () => {
+  beforeEach(() => {
+    sinon.restore();
+  });
+
+  after(() => {
+    sinon.restore();
+  });
+
   describe('getPaginationCursor', () => {
     it('should return a PaginationCursor object', async () => {
       // create a RecordWriteMessage object which is published
@@ -106,6 +115,13 @@ describe('Utils', () => {
       const recordsDelete = await TestDataGenerator.generateRecordsDelete();
       const deleteRole = getRecordProtocolRole(recordsDelete.message);
       expect(deleteRole).to.be.undefined;
+    });
+
+    it('returns undefined if decodedObject is undefined', async () => {
+      sinon.stub(Jws, 'decodePlainObjectPayload').returns(undefined);
+      const recordsWrite = await TestDataGenerator.generateRecordsWrite();
+      const writeRole = getRecordProtocolRole(recordsWrite.message);
+      expect(writeRole).to.be.undefined;
     });
   });
 });
