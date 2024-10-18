@@ -1,12 +1,12 @@
 import type { BearerDid ,PortableDid } from '@web5/dids';
-import type { DwnMessageParams, DwnProtocolDefinition, DwnPublicKeyJwk, DwnSigner } from '@web5/agent';
+import type { DwnMessageParams, DwnProtocolDefinition, DwnPublicKeyJwk, DwnSigner, ProcessDwnRequest, SendDwnRequest } from '@web5/agent';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { NodeStream } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { Web5UserAgent } from '@web5/user-agent';
-import { DwnConstant, DwnDateSort, DwnEncryptionAlgorithm, DwnInterface, DwnKeyDerivationScheme, dwnMessageConstructors, getRecordAuthor, Oidc, PlatformAgentTestHarness, WalletConnect } from '@web5/agent';
+import { DwnConstant, DwnDateSort, DwnEncryptionAlgorithm, DwnInterface, DwnKeyDerivationScheme, dwnMessageConstructors, getRecordAuthor, getRecordProtocolRole, Oidc, PlatformAgentTestHarness, WalletConnect } from '@web5/agent';
 import { Record } from '../src/record.js';
 import { DwnApi } from '../src/dwn-api.js';
 import { dataToBlob } from '../src/utils.js';
@@ -3089,6 +3089,9 @@ describe('Record', () => {
     });
 
     it('updates a record using a different protocolRole than the one used when querying for/reading the record', async () => {
+      // scenario: Bob has a notes protocol that has friends who can read/query/subscribe to notes, but coAuthors that can update notes.
+      // When Alice uses her friend role to query for notes, she cannot update them with that same role. Instead she uses her coAuthor role update.
+
       const protocol = {
         ...notesProtocolDefinition,
         protocol: 'http://example.com/notes' + TestDataGenerator.randomString(15)
@@ -3196,16 +3199,32 @@ describe('Record', () => {
       const { status: updateStatus } = await coAuthorNote!.update({ data: 'updated note' });
       expect(updateStatus.code).to.equal(202);
 
+      // spy on sendDwnRequest to ensure that the protocolRole is used to read the data of the notes
+      const sendDwnRequestSpy = sinon.spy(testHarness.agent, 'sendDwnRequest');
+
+      // confirm that it starts with 0 calls
+      expect(sendDwnRequestSpy.callCount).to.equal(0);
+
       // This is accepted locally but will fail when sending the update to the remote DWN
       const { status: sendStatus } = await coAuthorNote.send(bobDid.uri);
       expect(sendStatus.code).to.equal(401);
+      expect(sendDwnRequestSpy.callCount).to.equal(2); // the first call is for the initialWrite
+      let record = (sendDwnRequestSpy.secondCall.args[0] as ProcessDwnRequest<DwnInterface.RecordsWrite>).rawMessage;
+      let sendAuthorizationRole = getRecordProtocolRole(record);
+      expect(sendAuthorizationRole).to.equal('friend');
 
-      // Now update the record with the correct role
       const { status: updateStatusCoAuthor } = await coAuthorNote!.update({ data: 'updated note', protocolRole: 'note/coAuthor' });
       expect(updateStatusCoAuthor.code).to.equal(202);
 
+      sendDwnRequestSpy.resetHistory();
+
+      // Now update the record with the correct role
       const { status: sendStatusCoAuthor } = await coAuthorNote.send(bobDid.uri);
       expect(sendStatusCoAuthor.code).to.equal(202);
+      expect(sendDwnRequestSpy.callCount).to.equal(1); // the initialWrite was already sent and added to the sent-cache, only the update is sent
+      record = (sendDwnRequestSpy.firstCall.args[0] as ProcessDwnRequest<DwnInterface.RecordsWrite>).rawMessage;
+      sendAuthorizationRole = getRecordProtocolRole(record);
+      expect(sendAuthorizationRole).to.equal('note/coAuthor');
     });
   });
 
@@ -3782,6 +3801,9 @@ describe('Record', () => {
     });
 
     it('deletes a record using a different protocolRole than the one used when querying for/reading the record', async () => {
+      // scenario: Bob has a notes protocol that has friends who can read/query/subscribe to notes, but coAuthors that can update/delete notes.
+      // When Alice uses her friend role to query for notes, she cannot delete them with that same role. Instead she uses her coAuthor role to delete.
+
       const protocol = {
         ...notesProtocolDefinition,
         protocol: 'http://example.com/notes' + TestDataGenerator.randomString(15)
@@ -3880,11 +3902,24 @@ describe('Record', () => {
       const coDeleteNote = bobNotesAliceQuery.find((record) => record.id === aliceCoAuthorNoteId);
       expect(coDeleteNote).to.not.be.undefined;
 
+      // spy on sendDwnRequest to ensure that the protocolRole is used to read the data of the notes
+      const sendDwnRequestSpy = sinon.spy(testHarness.agent, 'sendDwnRequest');
+
+      // confirm that it starts with 0 calls
+      expect(sendDwnRequestSpy.callCount).to.equal(0);
+
       const { status: deleteStatus } = await coDeleteNote.delete({ store: false });
       expect(deleteStatus.code).to.equal(202);
 
       const { status: sendDeleteStatus } = await coDeleteNote.send(bobDid.uri);
       expect(sendDeleteStatus.code).to.equal(401);
+
+      expect(sendDwnRequestSpy.callCount).to.equal(2); // the first call is for the initialWrite
+      let record = (sendDwnRequestSpy.secondCall.args[0] as ProcessDwnRequest<DwnInterface.RecordsWrite>).rawMessage;
+      let sendAuthorizationRole = getRecordProtocolRole(record);
+      expect(sendAuthorizationRole).to.equal('friend');
+
+      sendDwnRequestSpy.resetHistory();
 
       // Now update the record with the correct role
       const { status: updateStatusCoAuthor } = await coDeleteNote.delete({ protocolRole: 'note/coAuthor', store: false });
@@ -3892,6 +3927,11 @@ describe('Record', () => {
 
       const { status: sendStatusCoAuthor } = await coDeleteNote.send(bobDid.uri);
       expect(sendStatusCoAuthor.code).to.equal(202, `delete send: ${sendStatusCoAuthor.detail}`);
+
+      expect(sendDwnRequestSpy.callCount).to.equal(1); // the initialWrite was already sent and added to the sent-cache, only the update is sent
+      record = (sendDwnRequestSpy.firstCall.args[0] as ProcessDwnRequest<DwnInterface.RecordsWrite>).rawMessage;
+      sendAuthorizationRole = getRecordProtocolRole(record);
+      expect(sendAuthorizationRole).to.equal('note/coAuthor');
     });
   });
 

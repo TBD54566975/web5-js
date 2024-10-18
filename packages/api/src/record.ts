@@ -721,7 +721,7 @@ export class Record implements RecordModel {
       ...descriptor,
       ...params,
       parentContextId,
-      protocolRole,
+      protocolRole     : protocolRole ?? this._protocolRole, // Use the current protocolRole if not provided.
       messageTimestamp : dateModified, // Map Record class `dateModified` property to DWN SDK `messageTimestamp`
       recordId         : this._recordId
     };
@@ -850,7 +850,7 @@ export class Record implements RecordModel {
         prune            : prune,
         recordId         : this._recordId,
         messageTimestamp : dateModified,
-        protocolRole     : deleteParams?.protocolRole
+        protocolRole     : deleteParams?.protocolRole ?? this._protocolRole // if no protocolRole is provided, use the current protocolRole
       };
     }
 

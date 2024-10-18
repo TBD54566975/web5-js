@@ -3,7 +3,7 @@ import type { BearerDid } from '@web5/dids';
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { Web5UserAgent } from '@web5/user-agent';
-import { AgentPermissionsApi, DwnDateSort, DwnProtocolDefinition, getRecordAuthor, Oidc, PlatformAgentTestHarness, WalletConnect } from '@web5/agent';
+import { AgentPermissionsApi, DwnDateSort, DwnInterface, DwnProtocolDefinition, getRecordAuthor, Oidc, PlatformAgentTestHarness, ProcessDwnRequest, SendDwnRequest, WalletConnect } from '@web5/agent';
 
 import { DwnApi } from '../src/dwn-api.js';
 import { testDwnUrl } from './utils/test-config.js';
@@ -2082,6 +2082,10 @@ describe('DwnApi', () => {
       });
 
       it('ensures that a protocolRole used to query is also used to read the data of the resulted records', async () => {
+        // scenario: Bob has a protocol where he can write notes and add friends who can query and read these notes
+        // Alice is a friend of Bob and she queries for the notes and reads the data of the notes
+        // the protocolRole used to query for the notes should also be used to read the data of the notes
+
         const protocol = {
           ...notesProtocolDefinition,
           protocol: 'http://example.com/notes' + TestDataGenerator.randomString(15)
@@ -2147,12 +2151,26 @@ describe('DwnApi', () => {
         expect(noteRecords).to.exist;
         expect(noteRecords).to.have.lengthOf(3);
 
+        // spy on sendDwnRequest to ensure that the protocolRole is used to read the data of the notes
+        const sendDwnRequestSpy = sinon.spy(testHarness.agent, 'sendDwnRequest');
+
+        // confirm that it starts with 0 calls
+        expect(sendDwnRequestSpy.callCount).to.equal(0);
         // Alice attempts to read the data of the notes, which should succeed
         for (const record of noteRecords) {
           const readResult = await record.data.text();
           const expectedData = recordData.get(record.id);
           expect(readResult).to.equal(expectedData);
         }
+
+        // confirm that it was called 3 times
+        expect(sendDwnRequestSpy.callCount).to.equal(3);
+
+        // confirm that the protocolRole was used to read the data of the notes
+        expect(sendDwnRequestSpy.getCalls().every(call =>
+          call.args[0].messageType === DwnInterface.RecordsRead &&
+          (call.args[0] as ProcessDwnRequest<DwnInterface.RecordsRead>).messageParams.protocolRole === 'friend'
+        )).to.be.true;
       });
     });
   });
@@ -2522,6 +2540,9 @@ describe('DwnApi', () => {
       });
 
       it('ensures that a protocolRole used to subscribe is also used to read the data of the resulted records', async () => {
+        // scenario: Bob has a protocol where he can write notes and add friends who can subscribe and read these notes
+        // When Alice subscribes to the notes protocol using the role, the role should also be used to read the data of the notes
+
         const protocol = {
           ...notesProtocolDefinition,
           protocol: 'http://example.com/notes' + TestDataGenerator.randomString(15)
@@ -2555,11 +2576,6 @@ describe('DwnApi', () => {
 
         // Alice subscribes to the notes protocol using the role
         const notes: Map<string, Record> = new Map();
-        const subscriptionHandler = async (record: Record) => {
-          notes.set(record.id, record);
-        };
-
-        // alice uses the role to query for the available notes
         const { status: notesSubscribeStatus, subscription } = await dwnAlice.records.subscribe({
           from    : bobDid.uri,
           message : {
@@ -2569,7 +2585,10 @@ describe('DwnApi', () => {
               protocolPath : 'note'
             }
           },
-          subscriptionHandler
+          subscriptionHandler: (record) => {
+            // add to the notes map
+            notes.set(record.id, record);
+          }
         });
         expect(notesSubscribeStatus.code).to.equal(200);
         expect(subscription).to.exist;
@@ -2599,11 +2618,26 @@ describe('DwnApi', () => {
           expect(notes.size).to.equal(3);
         });
 
+        // spy on sendDwnRequest to ensure that the protocolRole is used to read the data of the notes
+        const sendDwnRequestSpy = sinon.spy(testHarness.agent, 'sendDwnRequest');
+
+        // confirm that it starts with 0 calls
+        expect(sendDwnRequestSpy.callCount).to.equal(0);
+        // Alice attempts to read the data of the notes, which should succeed
         for (const record of notes.values()) {
           const readResult = await record.data.text();
           const expectedData = recordData.get(record.id);
           expect(readResult).to.equal(expectedData);
         }
+
+        // confirm that it was called 3 times
+        expect(sendDwnRequestSpy.callCount).to.equal(3);
+
+        // confirm that the protocolRole was used to read the data of the notes
+        expect(sendDwnRequestSpy.getCalls().every(call =>
+          call.args[0].messageType === DwnInterface.RecordsRead &&
+          (call.args[0] as ProcessDwnRequest<DwnInterface.RecordsRead>).messageParams.protocolRole === 'friend'
+        )).to.be.true;
       });
     });
   });
