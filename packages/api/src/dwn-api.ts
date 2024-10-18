@@ -830,6 +830,7 @@ export class DwnApi {
             connectedDid   : this.connectedDid,
             delegateDid    : this.delegateDid,
             permissionsApi : this.permissionsApi,
+            protocolRole   : request.message.protocolRole,
             request
           })
         };

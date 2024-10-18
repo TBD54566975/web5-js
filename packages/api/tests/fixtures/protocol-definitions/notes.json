@@ -1,0 +1,48 @@
+{
+  "protocol": "http://notes-protocol.xyz",
+  "published": true,
+  "types": {
+    "note": {
+      "schema": "http://notes-protocol.xyz/schema/note",
+      "dataFormats": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    "comment": {
+      "schema": "http://notes-protocol.xyz/schema/comment",
+      "dataFormats": [
+        "text/plain",
+        "application/json"
+      ]
+    },
+    "friend" : {
+      "schema": "http://notes-protocol.xyz/schema/friend",
+      "dataFormats": [
+        "text/plain",
+        "application/json"
+      ]
+    }
+  },
+  "structure": {
+    "friend" :{
+      "$role": true
+    },
+    "note": {
+      "$actions": [
+        {
+          "role": "friend",
+          "can": ["read", "query", "subscribe"]
+        }
+      ],
+      "comment": {
+        "$actions": [
+          {
+            "role": "friend",
+            "can": ["create", "delete", "read", "query", "subscribe"]
+          }
+        ]
+      }
+    }
+  }
+}
