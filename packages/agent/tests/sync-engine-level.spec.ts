@@ -500,6 +500,36 @@ describe('SyncEngineLevel', () => {
 
         clock.restore();
       });
+
+      it('sync logs failures when enqueueing sync operations', async () => {
+        // returns 3 DID peers to sync with
+        sinon.stub(syncEngine as any, 'getSyncPeerState').resolves([{
+          did: 'did:example:alice',
+        }, {
+          did: 'did:example:bob',
+        }, {
+          did: 'did:example:carol',
+        }]);
+
+        const getDwnEventLogSpy = sinon.stub(syncEngine as any, 'getDwnEventLog').resolves([]);
+        getDwnEventLogSpy.onCall(2).rejects(new Error('Failed to get event log'));
+
+        // spy on the console error
+        const consoleErrorSpy = sinon.stub(console, 'error').resolves();
+
+        await syncEngine.sync();
+
+        expect(consoleErrorSpy.callCount).to.equal(1);
+        expect(consoleErrorSpy.firstCall.args[0]).to.include('Error enqueuing sync operation for peerState');
+
+        // reset the error spy
+        consoleErrorSpy.resetHistory();
+
+        // sync again, this time no errors should be thrown
+        await syncEngine.sync();
+
+        expect(consoleErrorSpy.notCalled).to.be.true;
+      });
     });
 
     describe('pull()', () => {
@@ -2000,6 +2030,44 @@ describe('SyncEngineLevel', () => {
         expect(syncSpy.callCount).to.equal(5);
 
         syncSpy.restore();
+        clock.restore();
+      });
+
+      it('should log sync errors, but continue syncing the next interval', async () => {
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri,
+        });
+
+        const clock = sinon.useFakeTimers({ shouldClearNativeTimers: true });
+        const syncSpy = sinon.stub(SyncEngineLevel.prototype as any, 'sync');
+
+        syncSpy.returns(new Promise<void>((resolve, reject) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 100);
+        }));
+
+        // first call is the initial sync, 2nd and onward are the intervals
+        // on the 2nd interval (3rd call), we reject the promise, a 4th call should be made
+        syncSpy.onThirdCall().rejects(new Error('Sync error'));
+
+        // spy on console.error to check if the error message is logged
+        const consoleErrorSpy = sinon.stub(console, 'error').resolves();
+
+        testHarness.agent.sync.startSync({ interval: '500ms' });
+
+        // three intervals
+        await clock.tickAsync(1_500);
+
+        // this should equal 4, once for the initial call and once for each interval call
+        expect(syncSpy.callCount).to.equal(4);
+
+        // check if the error message is logged
+        expect(consoleErrorSpy.callCount).to.equal(1);
+        expect(consoleErrorSpy.args[0][0]).to.include('SyncEngineLevel: Error during sync operation');
+
+        syncSpy.restore();
+        consoleErrorSpy.restore();
         clock.restore();
       });
     });

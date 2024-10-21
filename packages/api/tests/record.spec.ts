@@ -2611,58 +2611,6 @@ describe('Record', () => {
       expect(readResultAfterUpdate.status.code).to.equal(401);
     });
 
-    it('updates a record locally that only written to a remote DWN', async () => {
-      // Create a record but do not store it on the local DWN.
-      const { status, record } = await dwnAlice.records.write({
-        store   : false,
-        data    : 'Hello, world!',
-        message : {
-          schema     : 'foo/bar',
-          dataFormat : 'text/plain'
-        }
-      });
-      expect(status.code).to.equal(202);
-      expect(record).to.not.be.undefined;
-
-      // Store the data CID of the record before it is updated.
-      const dataCidBeforeDataUpdate = record!.dataCid;
-
-      // Write the record to a remote DWN.
-      const { status: sendStatus } = await record!.send(aliceDid.uri);
-      expect(sendStatus.code).to.equal(202);
-
-      // fails because record has not been stored in the local dwn yet
-      let updateResult = await record!.update({ data: 'bye' });
-      expect(updateResult.status.code).to.equal(400);
-      expect(updateResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: Initial write is not found.');
-
-      const { status: recordStoreStatus }=  await record.store();
-      expect(recordStoreStatus.code).to.equal(202);
-
-      // now succeeds with the update
-      updateResult = await record!.update({ data: 'bye' });
-      expect(updateResult.status.code).to.equal(202);
-
-      // Confirm that the record was written to the local DWN.
-      const readResult = await dwnAlice.records.read({
-        message: {
-          filter: {
-            recordId: record!.id
-          }
-        }
-      });
-      expect(readResult.status.code).to.equal(200);
-      expect(readResult.record).to.not.be.undefined;
-
-      // Confirm that the data CID of the record was updated.
-      expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
-      expect(readResult.record.dataCid).to.equal(record!.dataCid);
-
-      // Confirm that the data payload of the record was modified.
-      const updatedData = await record!.data.text();
-      expect(updatedData).to.equal('bye');
-    });
-
     it('allows to update a record locally that was initially read from a remote DWN if store() is issued', async () => {
       // Create a record but do not store it on the local DWN.
       const { status, record } = await dwnAlice.records.write({
@@ -2725,7 +2673,7 @@ describe('Record', () => {
       expect(readResult.record.dataCid).to.equal(readRecord.dataCid);
     });
 
-    it('updates a record locally that was initially queried from a remote DWN', async () => {
+    it('updates a record that was queried from a remote DWN without storing it', async () => {
       // Create a record but do not store it on the local DWN.
       const { status, record } = await dwnAlice.records.write({
         store   : false,
@@ -2746,7 +2694,7 @@ describe('Record', () => {
       expect(sendStatus.code).to.equal(202);
 
       // Query the record from the remote DWN.
-      const queryResult = await dwnAlice.records.query({
+      let queryResult = await dwnAlice.records.query({
         from    : aliceDid.uri,
         message : {
           filter: {
@@ -2758,37 +2706,95 @@ describe('Record', () => {
       expect(queryResult.records).to.not.be.undefined;
       expect(queryResult.records.length).to.equal(1);
 
-      // Attempt to update the queried record, which will fail because we haven't stored the queried record locally yet
+      // Attempt to update the queried record
       const [ queriedRecord ] = queryResult.records;
-      let updateResult = await queriedRecord!.update({ data: 'bye' });
-      expect(updateResult.status.code).to.equal(400);
-      expect(updateResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: Initial write is not found.');
-
-      // store the queried record
-      const { status: queriedStoreStatus } = await queriedRecord.store();
-      expect(queriedStoreStatus.code).to.equal(202);
-
-      updateResult = await queriedRecord!.update({ data: 'bye' });
+      let updateResult = await queriedRecord!.update({ data: 'Updated, world!', store: false });
       expect(updateResult.status.code).to.equal(202);
 
-      // Confirm that the record was written to the local DWN.
-      const readResult = await dwnAlice.records.read({
+      // confirm that the record does not exist locally
+      queryResult = await dwnAlice.records.read({
         message: {
           filter: {
             recordId: record!.id
           }
         }
       });
+      expect(queryResult.status.code).to.equal(404);
+    });
+
+    it('updates a record which has a parent reference from a remote DWN without storing it or its parent', async () => {
+      // create a parent thread
+      const { status: threadStatus, record: threadRecord } = await dwnAlice.records.write({
+        store   : false,
+        data    : 'Hello, world!',
+        message : {
+          protocol     : protocolDefinition.protocol,
+          schema       : protocolDefinition.types.thread.schema,
+          protocolPath : 'thread'
+        }
+      });
+
+      expect(threadStatus.code).to.equal(202);
+      expect(threadRecord).to.not.be.undefined;
+
+      const { status: threadSendStatus } = await threadRecord.send();
+      expect(threadSendStatus.code).to.equal(202);
+
+      // create an email with the thread as a parent
+      const { status: emailStatus, record: emailRecord } = await dwnAlice.records.write({
+        store   : false,
+        data    : 'Hello, world!',
+        message : {
+          parentContextId : threadRecord.contextId,
+          protocol        : protocolDefinition.protocol,
+          protocolPath    : 'thread/email',
+          schema          : protocolDefinition.types.email.schema
+        }
+      });
+      expect(emailStatus.code).to.equal(202);
+      expect(emailRecord).to.not.be.undefined;
+
+      const { status: emailSendStatus } = await emailRecord!.send();
+      expect(emailSendStatus.code).to.equal(202);
+
+      // update email record
+      const { status: updateStatus } = await emailRecord!.update({ data: 'updated email record', store: false });
+      expect(updateStatus.code).to.equal(202);
+
+      const { status: updateEmailSendStatus } = await emailRecord!.send();
+      expect(updateEmailSendStatus.code).to.equal(202);
+
+      let readResult = await dwnAlice.records.read({
+        from    : aliceDid.uri,
+        message : {
+          filter: {
+            recordId: emailRecord.id
+          }
+        }
+      });
+
       expect(readResult.status.code).to.equal(200);
       expect(readResult.record).to.not.be.undefined;
+      expect(await readResult.record.data.text()).to.equal('updated email record');
 
-      // Confirm that the data CID of the record was updated.
-      expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
-      expect(readResult.record.dataCid).to.equal(queriedRecord!.dataCid);
+      // confirm that records do not exist locally
+      readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: emailRecord.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(404);
 
-      // Confirm that the data payload of the record was modified.
-      const updatedData = await queriedRecord!.data.text();
-      expect(updatedData).to.equal('bye');
+      readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: threadRecord.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(404);
     });
 
     it('updates a record which has a parent reference', async () => {
