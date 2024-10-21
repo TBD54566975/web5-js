@@ -25,7 +25,7 @@ if (!globalThis.crypto) globalThis.crypto = webcrypto;
 
 let testDwnUrls: string[] = [testDwnUrl];
 
-describe.only('Record', () => {
+describe('Record', () => {
   let dataText: string;
   let dataBlob: Blob;
   let dataFormat: string;
@@ -2765,8 +2765,8 @@ describe.only('Record', () => {
       expect(updateEmailSendStatus.code).to.equal(202);
 
       let readResult = await dwnAlice.records.read({
-        from: aliceDid.uri,
-        message: {
+        from    : aliceDid.uri,
+        message : {
           filter: {
             recordId: emailRecord.id
           }
