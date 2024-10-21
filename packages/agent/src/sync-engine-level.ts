@@ -338,7 +338,12 @@ export class SyncEngineLevel implements SyncEngine {
 
       clearInterval(this._syncIntervalId);
       this._syncIntervalId = undefined;
-      await this.sync();
+
+      try {
+        await this.sync();
+      } catch (error) {
+        console.error('SyncEngineLevel: Error during sync operation', error);
+      }
 
       if (!this._syncIntervalId) {
         this._syncIntervalId = setInterval(intervalSync, intervalMilliseconds);
@@ -405,7 +410,7 @@ export class SyncEngineLevel implements SyncEngine {
     syncDirection: SyncDirection,
     syncPeerState: SyncState[]
   }) {
-    for (let syncState of syncPeerState) {
+    const enqueueOps = await Promise.allSettled(syncPeerState.map(async (syncState) => {
       // Get the event log from the remote DWN if pull sync, or local DWN if push sync.
       const eventLog = await this.getDwnEventLog({
         did         : syncState.did,
@@ -435,7 +440,15 @@ export class SyncEngineLevel implements SyncEngine {
           : this.getPushQueue();
         await syncQueue.batch(syncOperations as any);
       }
-    }
+    }));
+
+    // log any errors that occurred during the enqueuing process
+    enqueueOps.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        const peerState = syncPeerState[index];
+        console.error(`SyncEngineLevel: Error enqueuing sync operation for peerState: ${JSON.stringify(peerState)}`, result.reason);
+      }
+    });
   }
 
   private static generateSyncMessageParamsKey({ did, delegateDid, dwnUrl, protocol, watermark, messageCid }:SyncMessageParams): string {
