@@ -270,6 +270,40 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
     await this.agent.did.update({ portableDid, tenant: this.agent.agentDid.uri });
   }
 
+  public async getMetadataName({ didUri }: { didUri: string }): Promise<string> {
+    const identity = await this.get({ didUri });
+    if (!identity) {
+      throw new Error(`AgentIdentityApi: Failed to retrieve metadata name due to Identity not found: ${didUri}`);
+    }
+
+    return identity.metadata.name;
+  }
+
+  public async setMetadataName({ didUri, name }: { didUri: string; name: string }): Promise<void> {
+    if (!name) {
+      throw new Error('AgentIdentityApi: Failed to set metadata name due to missing name value.');
+    }
+
+    const identity = await this.get({ didUri });
+    if (!identity) {
+      throw new Error(`AgentIdentityApi: Failed to set metadata name due to Identity not found: ${didUri}`);
+    }
+
+    if (identity.metadata.name === name) {
+      throw new Error('AgentIdentityApi: Metadata name is already set to the provided value.');
+    }
+
+    // Update the name in the Identity's metadata and store it
+    await this._store.set({
+      id             : identity.did.uri,
+      data           : { ...identity.metadata, name },
+      agent          : this.agent,
+      tenant         : identity.metadata.tenant,
+      updateExisting : true,
+      useCache       : true
+    });
+  }
+
   /**
    * Returns the connected Identity, if one is available.
    *
