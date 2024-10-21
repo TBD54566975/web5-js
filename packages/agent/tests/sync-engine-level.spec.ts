@@ -500,6 +500,36 @@ describe('SyncEngineLevel', () => {
 
         clock.restore();
       });
+
+      it('sync logs failures when enqueueing sync operations', async () => {
+        // returns 3 DID peers to sync with
+        sinon.stub(syncEngine as any, 'getSyncPeerState').resolves([{
+          did: 'did:example:alice',
+        }, {
+          did: 'did:example:bob',
+        }, {
+          did: 'did:example:carol',
+        }]);
+
+        const getDwnEventLogSpy = sinon.stub(syncEngine as any, 'getDwnEventLog').resolves([]);
+        getDwnEventLogSpy.onCall(2).rejects(new Error('Failed to get event log'));
+
+        // spy on the console error
+        const consoleErrorSpy = sinon.stub(console, 'error').resolves();
+
+        await syncEngine.sync();
+
+        expect(consoleErrorSpy.callCount).to.equal(1);
+        expect(consoleErrorSpy.firstCall.args[0]).to.include('Error enqueuing sync operation for peerState');
+
+        // reset the error spy
+        consoleErrorSpy.resetHistory();
+
+        // sync again, this time no errors should be thrown
+        await syncEngine.sync();
+
+        expect(consoleErrorSpy.notCalled).to.be.true;
+      });
     });
 
     describe('pull()', () => {
