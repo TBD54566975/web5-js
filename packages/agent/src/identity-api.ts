@@ -270,6 +270,14 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
     await this.agent.did.update({ portableDid, tenant: this.agent.agentDid.uri });
   }
 
+  /**
+   * Updates the Identity's metadata name field.
+   *
+   * @param didUri - The DID URI of the Identity to update.
+   * @param name - The new name to set for the Identity.
+   *
+   * @throws An error if the Identity is not found, name is not provided, or no changes are detected.
+   */
   public async setMetadataName({ didUri, name }: { didUri: string; name: string }): Promise<void> {
     if (!name) {
       throw new Error('AgentIdentityApi: Failed to set metadata name due to missing name value.');
