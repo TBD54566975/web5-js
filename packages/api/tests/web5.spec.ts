@@ -455,6 +455,7 @@ describe('web5 api', () => {
         // connect to the app, the options don't matter because we're stubbing the initClient method
         const { web5, did, delegateDid } = await Web5.connect({
           walletConnectOptions: {
+            displayName        : 'Sample App',
             connectServerUrl   : 'https://connect.example.com',
             walletUri          : 'https://wallet.example.com',
             validatePin        : async () => { return '1234'; },
@@ -675,6 +676,7 @@ describe('web5 api', () => {
           // connect to the app, the options don't matter because we're stubbing the initClient method
           await Web5.connect({
             walletConnectOptions: {
+              displayName        : 'Sample App',
               connectServerUrl   : 'https://connect.example.com',
               walletUri          : 'https://wallet.example.com',
               validatePin        : async () => { return '1234'; },
@@ -735,6 +737,7 @@ describe('web5 api', () => {
           await Web5.connect({
             sync                 : 'off',
             walletConnectOptions : {
+              displayName        : 'Sample App',
               connectServerUrl   : 'https://connect.example.com',
               walletUri          : 'https://wallet.example.com',
               validatePin        : async () => { return '1234'; },
@@ -779,6 +782,7 @@ describe('web5 api', () => {
         await Web5.connect({
           sync                 : '1m',
           walletConnectOptions : {
+            displayName        : 'Sample App',
             connectServerUrl   : 'https://connect.example.com',
             walletUri          : 'https://wallet.example.com',
             validatePin        : async () => { return '1234'; },
@@ -822,6 +826,7 @@ describe('web5 api', () => {
 
           await Web5.connect({
             walletConnectOptions: {
+              displayName        : 'Sample App',
               connectServerUrl   : 'https://connect.example.com',
               walletUri          : 'https://wallet.example.com',
               validatePin        : async () => { return '1234'; },
@@ -893,6 +898,7 @@ describe('web5 api', () => {
 
           await Web5.connect({
             walletConnectOptions: {
+              displayName        : 'Sample App',
               connectServerUrl   : 'https://connect.example.com',
               walletUri          : 'https://wallet.example.com',
               validatePin        : async () => { return '1234'; },

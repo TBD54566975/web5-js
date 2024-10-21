@@ -1,4 +1,4 @@
-import { Convert, RequireOnly } from '@web5/common';
+import { Convert, logger, RequireOnly } from '@web5/common';
 import {
   Ed25519,
   EdDsaAlgorithm,
@@ -128,6 +128,9 @@ export type SIOPv2AuthRequest = {
  * The contents of this are inserted into a JWT inside of the {@link PushedAuthRequest}.
  */
 export type Web5ConnectAuthRequest = {
+  /** The user friendly name of the client/app to be displayed when prompting end-user with permission requests. */
+  displayName: string;
+
   /** PermissionGrants that are to be sent to the provider */
   permissionRequests: ConnectPermissionRequest[];
 } & SIOPv2AuthRequest;
@@ -242,7 +245,7 @@ async function generateCodeChallenge() {
 async function createAuthRequest(
   options: RequireOnly<
     Web5ConnectAuthRequest,
-    'client_id' | 'scope' | 'redirect_uri' | 'permissionRequests'
+    'client_id' | 'scope' | 'redirect_uri' | 'permissionRequests' | 'displayName'
   >
 ) {
   // Generate a random state value to associate the authorization request with the response.
@@ -628,6 +631,7 @@ async function createPermissionGrants(
   const permissionsApi = new AgentPermissionsApi({ agent });
 
   // TODO: cleanup all grants if one fails by deleting them from the DWN: https://github.com/TBD54566975/web5-js/issues/849
+  logger.log(`Creating permission grants for ${scopes.length} scopes given...`);
   const permissionGrants = await Promise.all(
     scopes.map((scope) => {
       // check if the scope is a records permission scope, or a protocol configure scope, if so it should use a delegated permission.
@@ -643,6 +647,7 @@ async function createPermissionGrants(
     })
   );
 
+  logger.log(`Sending ${permissionGrants.length} permission grants to remote DWN...`);
   const messagePromises = permissionGrants.map(async (grant) => {
     // Quirk: we have to pull out encodedData out of the message the schema validator doesn't want it there
     const { encodedData, ...rawMessage } = grant.message;
@@ -658,6 +663,8 @@ async function createPermissionGrants(
 
     // check if the message was sent successfully, if the remote returns 409 the message may have come through already via sync
     if (reply.status.code !== 202 && reply.status.code !== 409) {
+      logger.error(`Error sending RecordsWrite: ${reply.status.detail}`);
+      logger.error(`RecordsWrite message: ${rawMessage}`);
       throw new Error(
         `Could not send the message. Error details: ${reply.status.detail}`
       );
@@ -666,9 +673,13 @@ async function createPermissionGrants(
     return grant.message;
   });
 
-  const messages = await Promise.all(messagePromises);
-
-  return messages;
+  try {
+    const messages = await Promise.all(messagePromises);
+    return messages;
+  } catch (error) {
+    logger.error(`Error during batch-send of permission grants: ${error}`);
+    throw error;
+  }
 }
 
 /**
@@ -693,6 +704,7 @@ async function prepareProtocol(
       `Could not fetch protocol: ${queryMessage.reply.status.detail}`
     );
   } else if (queryMessage.reply.entries === undefined || queryMessage.reply.entries.length === 0) {
+    logger.log(`Protocol does not exist, creating: ${protocolDefinition.protocol}`);
 
     // send the protocol definition to the remote DWN first, if it passes we can process it locally
     const { reply: sendReply, message: configureMessage } = await agent.sendDwnRequest({
@@ -716,6 +728,7 @@ async function prepareProtocol(
     });
 
   } else {
+    logger.log(`Protocol already exists: ${protocolDefinition.protocol}`);
 
     // the protocol already exists, let's make sure it exists on the remote DWN as the requesting app will need it
     const configureMessage = queryMessage.reply.entries![0];
@@ -776,6 +789,7 @@ async function submitAuthResponse(
 
   const delegateGrants = (await Promise.all(delegateGrantPromises)).flat();
 
+  logger.log('Generating auth response object...');
   const responseObject = await Oidc.createResponseObject({
     //* the IDP's did that was selected to be connected
     iss   : selectedDid,
@@ -790,6 +804,7 @@ async function submitAuthResponse(
   });
 
   // Sign the Response Object using the ephemeral DID's signing key.
+  logger.log('Signing auth response object...');
   const responseObjectJwt = await Oidc.signJwt({
     did  : delegateBearerDid,
     data : responseObject,
@@ -801,6 +816,7 @@ async function submitAuthResponse(
     clientDid?.didDocument!
   );
 
+  logger.log('Encrypting auth response object...');
   const encryptedResponse = Oidc.encryptAuthResponse({
     jwt              : responseObjectJwt!,
     encryptionKey    : sharedKey,
@@ -813,6 +829,7 @@ async function submitAuthResponse(
     state    : authRequest.state,
   }).toString();
 
+  logger.log(`Sending auth response object to Web5 Connect server: ${authRequest.redirect_uri}`);
   await fetch(authRequest.redirect_uri, {
     body    : formEncodedRequest,
     method  : 'POST',

@@ -36,7 +36,7 @@ export class BearerIdentity {
   public async export(): Promise<PortableIdentity> {
     return {
       portableDid : await this.did.export(),
-      metadata    : this.metadata
+      metadata    : { ...this.metadata },
     };
   }
 }

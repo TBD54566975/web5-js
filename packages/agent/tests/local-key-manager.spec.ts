@@ -1,9 +1,10 @@
 import type { Jwk } from '@web5/crypto';
 import type { BearerDid } from '@web5/dids';
 
+import sinon from 'sinon';
 import { expect } from 'chai';
 import { Convert } from '@web5/common';
-import { CryptoUtils } from '@web5/crypto';
+import { CryptoUtils, Ed25519 } from '@web5/crypto';
 
 import type { Web5PlatformAgent } from '../src/types/agent.js';
 
@@ -103,6 +104,21 @@ describe('LocalKeyManager', () => {
           // Validate the results.
           expect(ciphertext).to.be.instanceOf(Uint8Array);
           expect(ciphertext.byteLength).to.equal(plaintext.byteLength + tagLength / 8);
+        });
+      });
+
+      describe('importKey()', () => {
+        it('imports a key and returns a key URI', async () => {
+          // generate a key and import it
+          const key = await Ed25519.generateKey();
+          const keyUri = await testHarness.agent.keyManager.importKey({ key });
+
+          // fetch the key using the keyUri
+          const importedKey = await testHarness.agent.keyManager.exportKey({ keyUri });
+
+          // validate the key
+          expect(importedKey).to.exist;
+          expect(importedKey).to.deep.equal(key);
         });
       });
 

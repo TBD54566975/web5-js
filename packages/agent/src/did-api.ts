@@ -11,7 +11,7 @@ import type {
   DidResolverCache,
 } from '@web5/dids';
 
-import { BearerDid, Did, UniversalResolver } from '@web5/dids';
+import { BearerDid, Did, DidDht, UniversalResolver } from '@web5/dids';
 
 import type { AgentDataStore } from './store-data.js';
 import type { AgentKeyManager } from './types/key-manager.js';
@@ -19,6 +19,7 @@ import type { ResponseStatus, Web5PlatformAgent } from './types/agent.js';
 
 import { InMemoryDidStore } from './store-did.js';
 import { AgentDidResolverCache } from './agent-did-resolver-cache.js';
+import { canonicalize } from '@web5/crypto';
 
 export enum DidInterface {
   Create  = 'Create',
@@ -254,6 +255,58 @@ export class AgentDidApi<TKeyManager extends AgentKeyManager = AgentKeyManager> 
     const verificationMethod = await didMethod.getSigningMethod({ didDocument, methodId });
 
     return verificationMethod;
+  }
+
+  public async update({ tenant, portableDid, publish = true }: {
+    tenant?: string;
+    portableDid: PortableDid;
+    publish?: boolean;
+  }): Promise<BearerDid> {
+
+    // Check if the DID exists in the store.
+    const existingDid = await this.get({ didUri: portableDid.uri, tenant: tenant ?? portableDid.uri });
+    if (!existingDid) {
+      throw new Error(`AgentDidApi: Could not update, DID not found: ${portableDid.uri}`);
+    }
+
+    // If the document has not changed, abort the update.
+    if (canonicalize(portableDid.document) === canonicalize(existingDid.document)) {
+      throw new Error('AgentDidApi: No changes detected, update aborted');
+    }
+
+    // If private keys are present in the PortableDid, import the key material into the Agent's key
+    // manager. Validate that the key material for every verification method in the DID document is
+    // present in the key manager. If no keys are present, this will fail.
+    // NOTE: We currently do not delete the previous keys from the document.
+    // TODO: Add support for deleting the keys no longer present in the document.
+    const bearerDid = await BearerDid.import({ keyManager: this.agent.keyManager, portableDid });
+
+    // Only the DID URI, document, and metadata are stored in the Agent's DID store.
+    const { uri, document, metadata } = bearerDid;
+    const portableDidWithoutKeys: PortableDid = { uri, document, metadata };
+
+    // pre-populate the resolution cache with the document and metadata
+    await this.cache.set(uri, { didDocument: document, didResolutionMetadata: { }, didDocumentMetadata: metadata });
+
+    await this._store.set({
+      id             : uri,
+      data           : portableDidWithoutKeys,
+      agent          : this.agent,
+      tenant         : tenant ?? uri,
+      updateExisting : true,
+      useCache       : true
+    });
+
+    if (publish) {
+      const parsedDid = Did.parse(uri);
+      // currently only supporting DHT as a publishable method.
+      // TODO: abstract this into the didMethod class so that other publishable methods can be supported.
+      if (parsedDid && parsedDid.method === 'dht') {
+        await DidDht.publish({ did: bearerDid });
+      }
+    }
+
+    return bearerDid;
   }
 
   public async import({ portableDid, tenant }: {
