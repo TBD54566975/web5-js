@@ -141,6 +141,9 @@ export type RecordUpdateParams = {
    */
   dataCid?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['dataCid'];
 
+  /** Whether or not to store the updated message. */
+  store?: boolean;
+
   /** The data format/MIME type of the supplied data */
   dataFormat?: string;
 
@@ -706,7 +709,7 @@ export class Record implements RecordModel {
    *
    * @beta
    */
-  async update({ dateModified, data, protocolRole, ...params }: RecordUpdateParams): Promise<DwnResponseStatus> {
+  async update({ dateModified, data, protocolRole, store = true, ...params }: RecordUpdateParams): Promise<DwnResponseStatus> {
 
     if (this.deleted) {
       throw new Error('Record: Cannot revive a deleted record.');
@@ -760,6 +763,7 @@ export class Record implements RecordModel {
       messageParams : { ...updateMessage },
       messageType   : DwnInterface.RecordsWrite,
       target        : this._connectedDid,
+      store
     };
 
     if (this._delegateDid) {
