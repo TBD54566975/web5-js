@@ -187,6 +187,7 @@ export type DwnResponseStatus = {
 
     /** Descriptive detail about the status or error. */
     detail: string;
+    ok: boolean;
   };
 };
 
