@@ -9,10 +9,11 @@ export class SubscriptionUtil {
   /**
    * Creates a record subscription handler that can be used to process incoming {Record} messages.
    */
-  static recordSubscriptionHandler({ agent, connectedDid, request, delegateDid, permissionsApi }:{
+  static recordSubscriptionHandler({ agent, connectedDid, request, delegateDid, protocolRole, permissionsApi }:{
     agent: Web5Agent;
     connectedDid: string;
     delegateDid?: string;
+    protocolRole?: string;
     permissionsApi?: PermissionsApi;
     request: RecordsSubscribeRequest;
   }): DwnRecordSubscriptionHandler {
@@ -31,6 +32,7 @@ export class SubscriptionUtil {
       const record = new Record(agent, {
         ...message,
         ...recordOptions,
+        protocolRole,
         delegateDid: delegateDid,
       }, permissionsApi);
 
