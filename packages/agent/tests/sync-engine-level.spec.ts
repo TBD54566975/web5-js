@@ -2002,6 +2002,44 @@ describe('SyncEngineLevel', () => {
         syncSpy.restore();
         clock.restore();
       });
+
+      it('should log sync errors, but continue syncing the next interval', async () => {
+        await testHarness.agent.sync.registerIdentity({
+          did: alice.did.uri,
+        });
+
+        const clock = sinon.useFakeTimers({ shouldClearNativeTimers: true });
+        const syncSpy = sinon.stub(SyncEngineLevel.prototype as any, 'sync');
+
+        syncSpy.returns(new Promise<void>((resolve, reject) => {
+          clock.setTimeout(() => {
+            resolve();
+          }, 100);
+        }));
+
+        // first call is the initial sync, 2nd and onward are the intervals
+        // on the 2nd interval (3rd call), we reject the promise, a 4th call should be made
+        syncSpy.onThirdCall().rejects(new Error('Sync error'));
+
+        // spy on console.error to check if the error message is logged
+        const consoleErrorSpy = sinon.stub(console, 'error').resolves();
+
+        testHarness.agent.sync.startSync({ interval: '500ms' });
+
+        // three intervals
+        await clock.tickAsync(1_500);
+
+        // this should equal 4, once for the initial call and once for each interval call
+        expect(syncSpy.callCount).to.equal(4);
+
+        // check if the error message is logged
+        expect(consoleErrorSpy.callCount).to.equal(1);
+        expect(consoleErrorSpy.args[0][0]).to.include('SyncEngineLevel: Error during sync operation');
+
+        syncSpy.restore();
+        consoleErrorSpy.restore();
+        clock.restore();
+      });
     });
 
     describe('stopSync()', () => {
