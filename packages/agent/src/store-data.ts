@@ -158,8 +158,8 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
 
       // set the recordId in the messageParams to update the existing record
       // set the dateCreated to the existing dateCreated as this is an immutable property
-      messageParams.recordId = matchingRecordEntry.recordsWrite?.recordId;
-      messageParams.dateCreated = matchingRecordEntry.recordsWrite?.descriptor.dateCreated;
+      messageParams.recordId = matchingRecordEntry.recordsWrite!.recordId;
+      messageParams.dateCreated = matchingRecordEntry.recordsWrite!.descriptor.dateCreated;
     } else if (preventDuplicates) {
       // Look up the DWN record ID of the object in the store with the given `id`.
       const matchingRecordId = await this.lookupRecordId({ id, tenantDid, agent });
@@ -325,10 +325,6 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
         messageType   : DwnInterface.RecordsRead,
         messageParams : { filter: { recordId } }
       });
-
-      if (readReply.status.code !== 200 || !readReply.entry) {
-        throw new Error(`${this.name}: Failed to read data from DWN for: ${recordId}`);
-      }
 
       return readReply.entry;
     }
