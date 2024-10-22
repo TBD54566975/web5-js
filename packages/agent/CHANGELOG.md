@@ -1,5 +1,11 @@
 # @web5/agent
 
+## 0.8.1
+
+### Patch Changes
+
+- [#961](https://github.com/TBD54566975/web5-js/pull/961) [`ca89770`](https://github.com/TBD54566975/web5-js/commit/ca89770943c538cfe62a3cfabcced483ef768e36) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Fix error where `dwn-store` records were not being updated when marked as such.
+
 ## 0.8.0
 
 ### Minor Changes
