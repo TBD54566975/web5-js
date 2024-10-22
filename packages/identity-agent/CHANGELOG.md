@@ -1,5 +1,31 @@
 # @web5/identity-agent
 
+## 0.7.0
+
+### Minor Changes
+
+- [#914](https://github.com/TBD54566975/web5-js/pull/914) [`bd1cb00`](https://github.com/TBD54566975/web5-js/commit/bd1cb00616029b0d18687b597e90d3b7c4dbeae1) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Ability to Update a DID
+
+- [#911](https://github.com/TBD54566975/web5-js/pull/911) [`c92159c`](https://github.com/TBD54566975/web5-js/commit/c92159c32a4f45aae73eb16199185af95a4b55e3) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Simplify IdentityApi to be agent-focused and storing both the DID and IdentityMetadata under the agent's tenant.
+
+### Patch Changes
+
+- [#953](https://github.com/TBD54566975/web5-js/pull/953) [`3f39bf1`](https://github.com/TBD54566975/web5-js/commit/3f39bf1d14cf835a2959b5386a82ff7228d31e6c) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Add ability to update DWN Endpoints
+
+- [#958](https://github.com/TBD54566975/web5-js/pull/958) [`7072331`](https://github.com/TBD54566975/web5-js/commit/70723312d677c3f0aac960688613b45160528f90) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Prevent SyncEngine from stopping completely during a sync failure, next interval will try again.
+
+- [#954](https://github.com/TBD54566975/web5-js/pull/954) [`5120f6f`](https://github.com/TBD54566975/web5-js/commit/5120f6fd88e4883e1b8614b513f1aa826de7ce4c) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Add `getProtocolRole` util
+
+- [#910](https://github.com/TBD54566975/web5-js/pull/910) [`d3b4728`](https://github.com/TBD54566975/web5-js/commit/d3b4728fb2ad8a15fd81d6db1865bd7b8c762561) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Enable EventEmitterStream
+
+- [#956](https://github.com/TBD54566975/web5-js/pull/956) [`e7f5dfe`](https://github.com/TBD54566975/web5-js/commit/e7f5dfec5fc4cff686340a935442342a9383aa34) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Add ability to update the Identity Metadata name field.
+
+- Updated dependencies [[`bd1cb00`](https://github.com/TBD54566975/web5-js/commit/bd1cb00616029b0d18687b597e90d3b7c4dbeae1), [`3f39bf1`](https://github.com/TBD54566975/web5-js/commit/3f39bf1d14cf835a2959b5386a82ff7228d31e6c), [`c92159c`](https://github.com/TBD54566975/web5-js/commit/c92159c32a4f45aae73eb16199185af95a4b55e3), [`101f463`](https://github.com/TBD54566975/web5-js/commit/101f463eae4fa54383a8ffd28292755076ce50f4), [`7072331`](https://github.com/TBD54566975/web5-js/commit/70723312d677c3f0aac960688613b45160528f90), [`5120f6f`](https://github.com/TBD54566975/web5-js/commit/5120f6fd88e4883e1b8614b513f1aa826de7ce4c), [`d3b4728`](https://github.com/TBD54566975/web5-js/commit/d3b4728fb2ad8a15fd81d6db1865bd7b8c762561), [`e7f5dfe`](https://github.com/TBD54566975/web5-js/commit/e7f5dfec5fc4cff686340a935442342a9383aa34), [`bfa0417`](https://github.com/TBD54566975/web5-js/commit/bfa0417a2e9fc1300c5e604bea19b75ab1c73645)]:
+  - @web5/agent@0.8.0
+  - @web5/dids@1.2.0
+  - @web5/common@1.1.0
+  - @web5/crypto@1.0.6
+
 ## 0.6.4
 
 ### Patch Changes
