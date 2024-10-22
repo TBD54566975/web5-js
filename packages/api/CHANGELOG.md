@@ -1,5 +1,23 @@
 # @web5/api
 
+## 0.12.0
+
+### Minor Changes
+
+- [#963](https://github.com/TBD54566975/web5-js/pull/963) [`05e5b64`](https://github.com/TBD54566975/web5-js/commit/05e5b64cddb936681ff60bb42c12880a6c1d2825) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Identity information exclusively stored using Agent's DID as a tenant
+
+### Patch Changes
+
+- [#911](https://github.com/TBD54566975/web5-js/pull/911) [`c92159c`](https://github.com/TBD54566975/web5-js/commit/c92159c32a4f45aae73eb16199185af95a4b55e3) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Update usage of new IdentityApi behavior internally.
+
+- [#957](https://github.com/TBD54566975/web5-js/pull/957) [`1334fae`](https://github.com/TBD54566975/web5-js/commit/1334fae8c653ea62292f5f74d9d01ac37dbdff5c) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Allow records to be updated without storing.
+
+- [#910](https://github.com/TBD54566975/web5-js/pull/910) [`d3b4728`](https://github.com/TBD54566975/web5-js/commit/d3b4728fb2ad8a15fd81d6db1865bd7b8c762561) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Enable EventStream from agent.
+
+- [#954](https://github.com/TBD54566975/web5-js/pull/954) [`5120f6f`](https://github.com/TBD54566975/web5-js/commit/5120f6fd88e4883e1b8614b513f1aa826de7ce4c) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Ensure protocolRole is maintained between query/read and subscribe/read.
+
+- [#945](https://github.com/TBD54566975/web5-js/pull/945) [`101f463`](https://github.com/TBD54566975/web5-js/commit/101f463eae4fa54383a8ffd28292755076ce50f4) Thanks [@thehenrytsai](https://github.com/thehenrytsai)! - Added parameter for app display name for dynamic rendering in the wallet during web5 connect flow
+
 ## 0.11.0
 
 ### Minor Changes
