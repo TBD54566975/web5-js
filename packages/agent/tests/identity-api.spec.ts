@@ -440,6 +440,115 @@ describe('AgentIdentityApi', () => {
         });
       });
 
+      describe('setMetadataName', () => {
+        it('should update the name of an Identity', async () => {
+          const identity = await testHarness.agent.identity.create({
+            metadata   : { name: 'Test Identity' },
+            didMethod  : 'jwk',
+            didOptions : {
+              verificationMethods: [{
+                algorithm: 'Ed25519'
+              }]
+            }
+          });
+          expect(identity.metadata.name).to.equal('Test Identity');
+
+          // sanity fetch the identity
+          let storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri });
+          expect(storedIdentity).to.exist;
+          expect(storedIdentity?.metadata.name).to.equal('Test Identity');
+
+          // update the identity
+          await testHarness.agent.identity.setMetadataName({ didUri: identity.did.uri, name: 'Updated Identity' });
+
+          // fetch the updated identity
+          storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri });
+          expect(storedIdentity).to.exist;
+          expect(storedIdentity?.metadata.name).to.equal('Updated Identity');
+        });
+
+        it('should throw if identity does not exist', async () => {
+          try {
+            await testHarness.agent.identity.setMetadataName({ didUri: 'did:method:xyz123', name: 'Updated Identity' });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error.message).to.include('AgentIdentityApi: Failed to set metadata name due to Identity not found');
+          }
+        });
+
+        it('should throw if name is missing or empty', async () => {
+          const storeSpy = sinon.spy(testHarness.agent.identity['_store'], 'set');
+          const identity = await testHarness.agent.identity.create({
+            metadata   : { name: 'Test Identity' },
+            didMethod  : 'jwk',
+            didOptions : {
+              verificationMethods: [{
+                algorithm: 'Ed25519'
+              }]
+            }
+          });
+
+          expect(storeSpy.callCount).to.equal(1);
+
+          try {
+            await testHarness.agent.identity.setMetadataName({ didUri: identity.did.uri, name: '' });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error.message).to.include('Failed to set metadata name due to missing name value');
+          }
+
+          try {
+            await testHarness.agent.identity.setMetadataName({ didUri: identity.did.uri, name: undefined! });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error.message).to.include('Failed to set metadata name due to missing name value');
+          }
+
+          // call count should not have changed
+          expect(storeSpy.callCount).to.equal(1);
+
+          // sanity confirm the name did not change
+          const storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri });
+          expect(storedIdentity).to.exist;
+          expect(storedIdentity?.metadata.name).to.equal('Test Identity');
+        });
+
+        it('should throw if the updated name is the same as the current name', async () => {
+          const identity = await testHarness.agent.identity.create({
+            metadata   : { name: 'Test Identity' },
+            didMethod  : 'jwk',
+            didOptions : {
+              verificationMethods: [{
+                algorithm: 'Ed25519'
+              }]
+            }
+          });
+
+          const storeSpy = sinon.spy(testHarness.agent.identity['_store'], 'set');
+
+          try {
+            await testHarness.agent.identity.setMetadataName({ didUri: identity.did.uri, name: 'Test Identity' });
+            expect.fail('Expected an error to be thrown');
+          } catch (error: any) {
+            expect(error.message).to.include('AgentIdentityApi: No changes detected');
+          }
+
+          // confirm set has not been called
+          expect(storeSpy.notCalled).to.be.true;
+
+          // sanity update the name to something else
+          await testHarness.agent.identity.setMetadataName({ didUri: identity.did.uri, name: 'Updated Identity' });
+
+          // confirm set has been called
+          expect(storeSpy.calledOnce).to.be.true;
+
+          // confirm the name was updated
+          const storedIdentity = await testHarness.agent.identity.get({ didUri: identity.did.uri });
+          expect(storedIdentity).to.exist;
+          expect(storedIdentity?.metadata.name).to.equal('Updated Identity');
+        });
+      });
+
       describe('connectedIdentity', () => {
         it('returns a connected Identity', async () => {
           // create multiple identities, some that are connected, and some that are not

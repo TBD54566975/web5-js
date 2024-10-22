@@ -271,6 +271,39 @@ export class AgentIdentityApi<TKeyManager extends AgentKeyManager = AgentKeyMana
   }
 
   /**
+   * Updates the Identity's metadata name field.
+   *
+   * @param didUri - The DID URI of the Identity to update.
+   * @param name - The new name to set for the Identity.
+   *
+   * @throws An error if the Identity is not found, name is not provided, or no changes are detected.
+   */
+  public async setMetadataName({ didUri, name }: { didUri: string; name: string }): Promise<void> {
+    if (!name) {
+      throw new Error('AgentIdentityApi: Failed to set metadata name due to missing name value.');
+    }
+
+    const identity = await this.get({ didUri });
+    if (!identity) {
+      throw new Error(`AgentIdentityApi: Failed to set metadata name due to Identity not found: ${didUri}`);
+    }
+
+    if (identity.metadata.name === name) {
+      throw new Error('AgentIdentityApi: No changes detected.');
+    }
+
+    // Update the name in the Identity's metadata and store it
+    await this._store.set({
+      id             : identity.did.uri,
+      data           : { ...identity.metadata, name },
+      agent          : this.agent,
+      tenant         : identity.metadata.tenant,
+      updateExisting : true,
+      useCache       : true
+    });
+  }
+
+  /**
    * Returns the connected Identity, if one is available.
    *
    * Accepts optional `connectedDid` parameter to filter the a specific connected identity,

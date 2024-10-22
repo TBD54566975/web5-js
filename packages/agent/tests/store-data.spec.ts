@@ -705,6 +705,7 @@ describe('AgentDataStore', () => {
 
         describe('updateExisting', () => {
           it('updates an existing record', async () => {
+
             // Create and import a DID.
             let bearerDid = await DidJwk.create();
             const importedDid = await testHarness.agent.did.import({
@@ -723,6 +724,9 @@ describe('AgentDataStore', () => {
               }
             };
 
+            // get the length of the list before updating to confirm that no additional records are added
+            const listLength = (await testStore.list({ agent: testHarness.agent })).length;
+
             // Update the DID in the store.
             await testStore.set({
               id             : importedDid.uri,
@@ -736,6 +740,10 @@ describe('AgentDataStore', () => {
             const storedDid = await testStore.get({ id: importedDid.uri, agent: testHarness.agent, tenant: testHarness.agent.agentDid.uri });
             expect(storedDid!.uri).to.equal(updatedDid.uri);
             expect(storedDid!.document).to.deep.equal(updatedDid.document);
+
+            // verify that no additional records were added
+            const updatedListLength = (await testStore.list({ agent: testHarness.agent })).length;
+            expect(updatedListLength).to.equal(listLength);
           });
 
           it('throws an error if the record does not exist', async () => {

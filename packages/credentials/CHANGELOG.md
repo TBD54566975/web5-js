@@ -1,5 +1,14 @@
 # @web5/credentials
 
+## 1.1.3
+
+### Patch Changes
+
+- Updated dependencies [[`bd1cb00`](https://github.com/TBD54566975/web5-js/commit/bd1cb00616029b0d18687b597e90d3b7c4dbeae1), [`3f39bf1`](https://github.com/TBD54566975/web5-js/commit/3f39bf1d14cf835a2959b5386a82ff7228d31e6c), [`bfa0417`](https://github.com/TBD54566975/web5-js/commit/bfa0417a2e9fc1300c5e604bea19b75ab1c73645)]:
+  - @web5/dids@1.2.0
+  - @web5/common@1.1.0
+  - @web5/crypto@1.0.6
+
 ## 1.1.2
 
 ### Patch Changes
