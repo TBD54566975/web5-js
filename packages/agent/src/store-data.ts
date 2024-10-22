@@ -8,7 +8,7 @@ import type { Web5PlatformAgent } from './types/agent.js';
 import { TENANT_SEPARATOR } from './utils-internal.js';
 import { getDataStoreTenant } from './utils-internal.js';
 import { DwnInterface, DwnMessageParams } from './types/dwn.js';
-import { ProtocolDefinition } from '@tbd54566975/dwn-sdk-js';
+import { ProtocolDefinition, RecordsReadReplyEntry } from '@tbd54566975/dwn-sdk-js';
 
 export type DataStoreTenantParams = {
   agent: Web5PlatformAgent;
@@ -151,13 +151,15 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
 
     if (updateExisting) {
       // Look up the DWN record ID of the object in the store with the given `id`.
-      const matchingRecordId = await this.lookupRecordId({ id, tenantDid, agent });
-      if (!matchingRecordId) {
+      const matchingRecordEntry = await this.getExistingRecordEntry({ id, tenantDid, agent });
+      if (!matchingRecordEntry) {
         throw new Error(`${this.name}: Update failed due to missing entry for: ${id}`);
       }
 
       // set the recordId in the messageParams to update the existing record
-      messageParams.recordId = matchingRecordId;
+      // set the dateCreated to the existing dateCreated as this is an immutable property
+      messageParams.recordId = matchingRecordEntry.recordsWrite!.recordId;
+      messageParams.dateCreated = matchingRecordEntry.recordsWrite!.descriptor.dateCreated;
     } else if (preventDuplicates) {
       // Look up the DWN record ID of the object in the store with the given `id`.
       const matchingRecordId = await this.lookupRecordId({ id, tenantDid, agent });
@@ -175,7 +177,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
       author        : tenantDid,
       target        : tenantDid,
       messageType   : DwnInterface.RecordsWrite,
-      messageParams : { ...this._recordProperties },
+      messageParams : { ...this._recordProperties, ...messageParams },
       dataStream    : new Blob([dataBytes], { type: 'application/json' })
     });
 
@@ -306,6 +308,26 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
     }
 
     return recordId;
+  }
+
+  private async getExistingRecordEntry({ id, tenantDid, agent }: {
+    id: string;
+    tenantDid: string;
+    agent: Web5PlatformAgent;
+  }): Promise<RecordsReadReplyEntry | undefined> {
+    // Look up the DWN record ID of the object in the store with the given `id`.
+    const recordId = await this.lookupRecordId({ id, tenantDid, agent });
+    if (recordId) {
+      // Read the record from the store.
+      const { reply: readReply } = await agent.dwn.processRequest({
+        author        : tenantDid,
+        target        : tenantDid,
+        messageType   : DwnInterface.RecordsRead,
+        messageParams : { filter: { recordId } }
+      });
+
+      return readReply.entry;
+    }
   }
 }
 
