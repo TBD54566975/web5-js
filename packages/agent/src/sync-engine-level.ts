@@ -385,6 +385,22 @@ export class SyncEngineLevel implements SyncEngine {
     }
   }
 
+  public syncOnce({ syncDirection }: { syncDirection: string }): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (syncDirection === 'push') {
+        this.push();
+        this.pull();
+        resolve();
+      } else if (syncDirection === 'pull') {
+        this.pull();
+        this.push();
+        resolve();
+      } else {
+        throw new Error('SyncEngineLevel: Invalid sync direction.');
+      }
+    });
+  }
+
   /**
    * 202: message was successfully written to the remote DWN
    * 204: an initial write message was written without any data, cannot yet be read until a subsequent message is written with data

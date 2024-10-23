@@ -55,4 +55,6 @@ export interface SyncEngine {
    * @throws {Error} if the sync operation fails to stop before the timeout.
    */
   stopSync(timeout?: number): Promise<void>;
+
+  syncOnce(params: { syncDirection: string }): Promise<void>;
 }
