@@ -280,11 +280,8 @@ export class Web5 {
         // Since we are connecting a new identity, we will want to register sync for the connectedDid
         registerSync = true;
 
-        // No connected identity found and connectOptions are provided, attempt to import a delegated DID from an external wallet
         try {
-          console.log('before initclient');
           const { delegatePortableDid, connectedDid, delegateGrants } = await WalletConnect.initClient(walletConnectOptions);
-          console.log('after initclient');
 
           // Import the delegated DID as an Identity in the User Agent.
           // Setting the connectedDID in the metadata applies a relationship between the signer identity and the one it is impersonating.
@@ -310,25 +307,7 @@ export class Web5 {
           throw new Error(`Failed to connect to wallet: ${error.message}`);
         }
       } else if (isWalletExportedConnect) {
-        console.log('IN EXPORT case');
-        if (sync === 'off') {
-          // sync must be enabled when using WalletConnect to ensure a connected app
-          // is not in a disjointed state from any other clients using the connectedDid
-          throw new Error('Sync must not be disabled when using WalletConnect');
-        }
-
-        // Since we are connecting a new identity, we will want to register sync for the connectedDid
-        registerSync = true;
-
-        try {
-          // TODO: do the exported connect
-        } catch (error:any) {
-          // clean up the DID and Identity if import fails and throw
-          // TODO: Implement the ability to purge all of our messages as a tenant
-          await this.cleanUpIdentity({ identity, userAgent });
-          throw new Error(`Failed to connect to wallet: ${error.message}`);
-        }
-      // else connecting to a locally held DID
+        throw new Error('Exported connect will be implemented in a separate PR');
       } else {
         console.log('IN else case');
         // No connected identity found and no connectOptions provided, use local Identities
