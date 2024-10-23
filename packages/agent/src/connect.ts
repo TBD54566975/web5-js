@@ -115,14 +115,8 @@ async function initClient({
   const normalizedPermissionRequests = permissionRequests.map(
     ({ protocolDefinition, permissions }) =>
       WalletConnect.createPermissionRequestForProtocol({
-        definition  : protocolDefinition,
-        permissions : permissions ?? [
-          'read',
-          'write',
-          'delete',
-          'query',
-          'subscribe',
-        ],
+        definition: protocolDefinition,
+        permissions,
       })
   );
 
@@ -256,9 +250,17 @@ function createPermissionRequestForProtocol({
   /** The protocol definition for the protocol being requested */
   definition: DwnProtocolDefinition;
 
-  /** The permissions being requested for the protocol */
-  permissions: Permission[];
+  /** The permissions being requested for the protocol. Defaults to all. */
+  permissions?: Permission[];
 }) {
+  permissions ??= [
+    'read',
+    'write',
+    'delete',
+    'query',
+    'subscribe',
+  ];
+
   const requests: DwnPermissionScope[] = [];
 
   // Add the ability to query for the specific protocol
