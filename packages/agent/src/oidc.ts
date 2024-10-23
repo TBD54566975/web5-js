@@ -464,7 +464,6 @@ function decryptAuthRequest({
   const encryptionKeyBytes = Convert.base64Url(encryption_key).toUint8Array();
   const protectedHeader = Convert.base64Url(protectedHeaderB64U).toUint8Array();
   const additionalData = protectedHeader;
-  const additionalDataObj = Convert.base64Url(protectedHeaderB64U).toObject();
   const nonce = Convert.base64Url(nonceB64U).toUint8Array();
   const ciphertext = Convert.base64Url(ciphertextB64U).toUint8Array();
   const authenticationTag = Convert.base64Url(
