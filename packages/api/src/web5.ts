@@ -8,16 +8,14 @@ import type {
   BearerIdentity,
   DwnDataEncodedRecordsWriteMessage,
   DwnMessagesPermissionScope,
-  DwnProtocolDefinition,
   DwnRecordsPermissionScope,
   HdIdentityVault,
-  Permission,
   WalletConnectOptions,
   Web5Agent,
 } from '@web5/agent';
 
 import { Web5UserAgent } from '@web5/user-agent';
-import { DwnInterface, DwnRegistrar, WalletConnect } from '@web5/agent';
+import { DwnRegistrar, WalletConnect } from '@web5/agent';
 
 import { DidApi } from './did-api.js';
 import { DwnApi } from './dwn-api.js';
@@ -36,37 +34,6 @@ export type DidCreateOptions = {
   dwnEndpoints?: string[];
 }
 
-/**
- * Represents a permission request for a protocol definition.
- */
-export type ConnectPermissionRequest = {
-  /**
-   * The protocol definition for the protocol being requested.
-   */
-  protocolDefinition: DwnProtocolDefinition;
-
-  /**
-   * The permissions being requested for the protocol. If none are provided, the default is to request all permissions.
-   */
-  permissions?: Permission[];
-}
-
-/**
- * Options for connecting to a Web5 agent. This includes the ability to connect to an external wallet.
- *
- * NOTE: the returned `ConnectPermissionRequest` type is different to the `ConnectPermissionRequest` type in the `@web5/agent` package.
- */
-export type ConnectOptions = Omit<WalletConnectOptions, 'permissionRequests'> & {
-  /** The user friendly name of the client/app to be displayed when prompting end-user with permission requests. */
-  displayName: string;
-
-  /**
-   * The permissions that are being requested for the connected DID.
-   * This is used to create the {@link ConnectPermissionRequest} for the wallet connect flow.
-   */
-  permissionRequests: ConnectPermissionRequest[];
-}
-
 /** Optional overrides that can be provided when calling {@link Web5.connect}. */
 export type Web5ConnectOptions = {
   /**
@@ -74,7 +41,7 @@ export type Web5ConnectOptions = {
    * This param currently will not work in apps that are currently connected.
    * It must only be invoked at registration with a reset and empty DWN and agent.
    */
-  walletConnectOptions?: ConnectOptions;
+  walletConnectOptions?: WalletConnectOptions;
 
   /**
    * Provide a {@link Web5Agent} implementation. Defaults to creating a local
@@ -290,15 +257,20 @@ export class Web5 {
         recoveryPhrase = await userAgent.initialize({ password, recoveryPhrase, dwnEndpoints: serviceEndpointNodes });
       }
       await userAgent.start({ password });
-      // Attempt to retrieve the connected Identity if it exists.
-      const connectedIdentity: BearerIdentity = await userAgent.identity.connectedIdentity();
+
+      // Attempt to retrieve the connected Identity if it exists
+      const connectedIdentity = await userAgent.identity.connectedIdentity();
       let identity: BearerIdentity;
       let connectedProtocols: string[] = [];
+
+      const isWalletConnect = walletConnectOptions && !walletConnectOptions.exported;
+      const isWalletExportedConnect = walletConnectOptions && walletConnectOptions.exported;
+
       if (connectedIdentity) {
-        // if a connected identity is found, use it
         // TODO: In the future, implement a way to re-connect an already connected identity and apply additional grants/protocols
         identity = connectedIdentity;
-      } else if (walletConnectOptions) {
+      } else if (isWalletConnect) {
+        console.log('IN walletConnect (non export) case');
         if (sync === 'off') {
           // Currently we require sync to be enabled when using WalletConnect
           // This is to ensure a connected app is not in a disjointed state from any other clients/app using the connectedDid
@@ -310,18 +282,9 @@ export class Web5 {
 
         // No connected identity found and connectOptions are provided, attempt to import a delegated DID from an external wallet
         try {
-          const { permissionRequests, ...connectOptions } = walletConnectOptions;
-          const walletPermissionRequests = permissionRequests.map(({ protocolDefinition, permissions }) => WalletConnect.createPermissionRequestForProtocol({
-            definition  : protocolDefinition,
-            permissions : permissions ?? [
-              'read', 'write', 'delete', 'query', 'subscribe'
-            ]}
-          ));
-
-          const { delegatePortableDid, connectedDid, delegateGrants } = await WalletConnect.initClient({
-            ...connectOptions,
-            permissionRequests: walletPermissionRequests,
-          });
+          console.log('before initclient');
+          const { delegatePortableDid, connectedDid, delegateGrants } = await WalletConnect.initClient(walletConnectOptions);
+          console.log('after initclient');
 
           // Import the delegated DID as an Identity in the User Agent.
           // Setting the connectedDID in the metadata applies a relationship between the signer identity and the one it is impersonating.
@@ -334,6 +297,7 @@ export class Web5 {
               tenant : agent.agentDid.uri,
             }
           }});
+          console.log('does have an identity');
 
           // Attempts to process the connected grants to be used by the delegateDID
           // If the process fails, we want to clean up the identity
@@ -345,7 +309,28 @@ export class Web5 {
           await this.cleanUpIdentity({ identity, userAgent });
           throw new Error(`Failed to connect to wallet: ${error.message}`);
         }
+      } else if (isWalletExportedConnect) {
+        console.log('IN EXPORT case');
+        if (sync === 'off') {
+          // sync must be enabled when using WalletConnect to ensure a connected app
+          // is not in a disjointed state from any other clients using the connectedDid
+          throw new Error('Sync must not be disabled when using WalletConnect');
+        }
+
+        // Since we are connecting a new identity, we will want to register sync for the connectedDid
+        registerSync = true;
+
+        try {
+          // TODO: do the exported connect
+        } catch (error:any) {
+          // clean up the DID and Identity if import fails and throw
+          // TODO: Implement the ability to purge all of our messages as a tenant
+          await this.cleanUpIdentity({ identity, userAgent });
+          throw new Error(`Failed to connect to wallet: ${error.message}`);
+        }
+      // else connecting to a locally held DID
       } else {
+        console.log('IN else case');
         // No connected identity found and no connectOptions provided, use local Identities
         // Query the Agent's DWN tenant for identity records.
         const identities = await userAgent.identity.list();
@@ -436,7 +421,7 @@ export class Web5 {
             }
           });
 
-          if(walletConnectOptions !== undefined) {
+          if (walletConnectOptions !== undefined) {
             // If we are using WalletConnect, we should do a one-shot sync to pull down any messages that are associated with the connectedDid
             await userAgent.sync.sync('pull');
           }
@@ -484,9 +469,8 @@ export class Web5 {
   }
 
   /**
-   * A static method to process connected grants for a delegate DID.
-   *
-   * This will store the grants as the DWN owner to be used later when impersonating the connected DID.
+   * Processes connected grants for a delegate DID.
+   * Stores the grants as the DWN owner to be used later when impersonating the connected DID.
    */
   static async processConnectedGrants({ grants, agent, delegateDid }: {
     grants: DwnDataEncodedRecordsWriteMessage[],

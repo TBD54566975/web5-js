@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { CryptoUtils } from '@web5/crypto';
-import { type BearerDid, DidDht, DidJwk, PortableDid } from '@web5/dids';
+import { type BearerDid, DidDht, DidJwk, type DidResolutionResult, type PortableDid } from '@web5/dids';
 import { Convert } from '@web5/common';
 import {
   Oidc,
@@ -11,16 +11,25 @@ import {
 import { PlatformAgentTestHarness } from '../src/test-harness.js';
 import { TestAgent } from './utils/test-agent.js';
 import { testDwnUrl } from './utils/test-config.js';
-import { BearerIdentity, DwnInterface, DwnMessage, DwnProtocolDefinition,  WalletConnect } from '../src/index.js';
+import { BearerIdentity, DwnInterface, DwnMessage, DwnProtocolDefinition, WalletConnect } from '../src/index.js';
 import { RecordsPermissionScope } from '@tbd54566975/dwn-sdk-js';
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 
 describe('web5 connect', function () {
   this.timeout(20000);
 
-  /** The temporary DID that web5 connect created on behalf of the client */
-  let clientEphemeralBearerDid: BearerDid;
-  let clientEphemeralPortableDid: PortableDid;
+  let clientSigningBearerDid: BearerDid;
+  let clientSigningPortableDid: PortableDid;
+
+  let clientEcdhBearerDid: BearerDid;
+  let clientEcdhPortableDid: PortableDid;
+  let clientEcdhDidAsResolvedByWallet: DidResolutionResult;
+
+  let providerSigningBearerDid: BearerDid;
+  let providerSigningPortableDid: PortableDid;
+
+  let providerEcdhBearerDid: BearerDid;
+  let providerEcdhPortableDid: PortableDid;
 
   /** The real tenant (identity) of the DWN that the provider had chosen to connect */
   let providerIdentity: BearerIdentity;
@@ -189,8 +198,13 @@ describe('web5 connect', function () {
       testDwnUrls : [testDwnUrl],
     });
 
-    clientEphemeralBearerDid = await DidJwk.create();
-    clientEphemeralPortableDid = await clientEphemeralBearerDid.export();
+    clientEcdhBearerDid = await DidJwk.create();
+    providerEcdhBearerDid = await DidJwk.create();
+
+    clientSigningBearerDid = await DidJwk.create();
+    clientSigningPortableDid = await clientSigningBearerDid.export();
+
+    providerSigningBearerDid = await DidJwk.create();
 
     delegateBearerDid = await DidJwk.create();
     delegatePortableDid = await delegateBearerDid.export();
@@ -225,7 +239,7 @@ describe('web5 connect', function () {
 
       const options = {
         displayName        : 'Sample App',
-        client_id          : clientEphemeralPortableDid.uri,
+        client_id          : clientSigningPortableDid.uri,
         scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
         // code_challenge_method : 'S256' as const,
@@ -243,16 +257,17 @@ describe('web5 connect', function () {
 
     it('should construct a signed jwt of an authrequest', async () => {
       authRequestJwt = await Oidc.signJwt({
-        did  : clientEphemeralBearerDid,
+        did  : clientSigningBearerDid,
         data : authRequest,
       });
       expect(authRequestJwt).to.be.a('string');
     });
 
-    it('should encrypt an authrequest using the code challenge', async () => {
+    it('should encrypt an authrequest using the random static encryptionKey', async () => {
       authRequestJwe = await Oidc.encryptAuthRequest({
         jwt           : authRequestJwt,
-        encryptionKey : authRequestEncryptionKey
+        encryptionKey : authRequestEncryptionKey,
+        kid           : clientEcdhBearerDid.document.verificationMethod![0].id
       });
       expect(authRequestJwe).to.be.a('string');
       expect(authRequestJwe.split('.')).to.have.lengthOf(5);
@@ -282,7 +297,9 @@ describe('web5 connect', function () {
         authorizeUrl,
         Convert.uint8Array(authRequestEncryptionKey).toBase64Url()
       );
-      expect(result).to.deep.equal(authRequest);
+      expect(result.authRequest).to.deep.equal(authRequest);
+      expect(result.clientEcdhDid.didDocument?.id).to.equal(clientEcdhBearerDid.uri);
+      clientEcdhDidAsResolvedByWallet = result.clientEcdhDid;
     });
 
     // TODO: waiting for DWN feature complete
@@ -317,20 +334,21 @@ describe('web5 connect', function () {
 
     it('should sign the authresponse with its provider did', async () => {
       authResponseJwt = await Oidc.signJwt({
-        did  : delegateBearerDid,
+        did  : providerSigningBearerDid,
         data : authResponse,
       });
+
       expect(authResponseJwt).to.be.a('string');
     });
 
     it('should derive a valid ECDH private key for both provider and client which is identical', async () => {
       const providerECDHDerivedPrivateKey = await Oidc.deriveSharedKey(
-        delegateBearerDid,
-        clientEphemeralBearerDid.document
+        providerEcdhBearerDid,
+        clientEcdhBearerDid.document
       );
       const clientECDHDerivedPrivateKey = await Oidc.deriveSharedKey(
-        clientEphemeralBearerDid,
-        delegateBearerDid.document
+        clientEcdhBearerDid,
+        providerEcdhBearerDid.document
       );
 
       expect(providerECDHDerivedPrivateKey).to.be.instanceOf(Uint8Array);
@@ -350,11 +368,12 @@ describe('web5 connect', function () {
       const randomBytesStub = sinon
         .stub(CryptoUtils, 'randomBytes')
         .returns(encryptionNonce);
-      authResponseJwe = Oidc.encryptAuthResponse({
-        jwt              : authResponseJwt,
-        encryptionKey    : sharedECDHPrivateKey,
+
+      authResponseJwe = Oidc.encryptWithPin({
+        jwt           : authResponseJwt,
+        encryptionKey : sharedECDHPrivateKey,
         randomPin,
-        delegateDidKeyId : delegateBearerDid.document.verificationMethod![0].id,
+        pubDidKid     : providerEcdhBearerDid.document.verificationMethod![0].id,
       });
       expect(authResponseJwe).to.be.a('string');
       expect(randomBytesStub.calledOnce).to.be.true;
@@ -363,7 +382,11 @@ describe('web5 connect', function () {
     it('should send the encrypted jwe authresponse to the server', async () => {
       sinon.stub(Oidc, 'createPermissionGrants').resolves(permissionGrants as any);
       sinon.stub(CryptoUtils, 'randomBytes').returns(encryptionNonce);
-      sinon.stub(DidJwk, 'create').resolves(delegateBearerDid);
+
+      const didJwkStub = sinon.stub(DidJwk, 'create');
+      didJwkStub.onFirstCall().resolves(providerSigningBearerDid);
+      didJwkStub.onSecondCall().resolves(providerEcdhBearerDid);
+      didJwkStub.onThirdCall().resolves(delegateBearerDid);
 
       const formEncodedRequest = new URLSearchParams({
         id_token : authResponseJwe,
@@ -392,6 +415,7 @@ describe('web5 connect', function () {
         selectedDid,
         authRequest,
         randomPin,
+        clientEcdhDidAsResolvedByWallet,
         testHarness.agent
       );
       expect(fetchSpy.calledOnce).to.be.true;
@@ -400,8 +424,8 @@ describe('web5 connect', function () {
 
   describe('client pin entry final phase', function () {
     it('should get the authresponse from server and decrypt the jwe using the pin', async () => {
-      const result = await Oidc.decryptAuthResponse(
-        clientEphemeralBearerDid,
+      const result = await Oidc.decryptWithPin(
+        clientEcdhBearerDid,
         authResponseJwe,
         randomPin
       );
@@ -411,8 +435,8 @@ describe('web5 connect', function () {
 
     it('should fail decrypting the jwe if the wrong pin is entered', async () => {
       try {
-        await Oidc.decryptAuthResponse(
-          clientEphemeralBearerDid,
+        await Oidc.decryptWithPin(
+          clientEcdhBearerDid,
           authResponseJwe,
           '87383837583757835737537734783'
         );
@@ -435,7 +459,9 @@ describe('web5 connect', function () {
     it('should complete the whole connect flow with the correct pin', async function () {
       const fetchStub = sinon.stub(globalThis, 'fetch');
       const onWalletUriReadySpy = sinon.spy();
-      sinon.stub(DidJwk, 'create').resolves(clientEphemeralBearerDid);
+      const didJwkStub = sinon.stub(DidJwk, 'create');
+      didJwkStub.onFirstCall().resolves(clientSigningBearerDid);
+      didJwkStub.onSecondCall().resolves(clientEcdhBearerDid);
 
       const par = {
         expires_in  : 3600000,
@@ -463,8 +489,7 @@ describe('web5 connect', function () {
         connectServerUrl   : 'http://localhost:3000/connect',
         permissionRequests : [
           {
-            protocolDefinition : {} as any,
-            permissionScopes   : {} as any,
+            protocolDefinition: {} as any,
           },
         ],
         onWalletUriReady : (uri) => onWalletUriReadySpy(uri),
@@ -508,7 +533,7 @@ describe('web5 connect', function () {
 
       const options = {
         displayName        : 'Sample App',
-        client_id          : clientEphemeralPortableDid.uri,
+        client_id          : clientSigningPortableDid.uri,
         scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
         // code_challenge_method : 'S256' as const,
@@ -535,6 +560,7 @@ describe('web5 connect', function () {
         providerIdentity.did.uri,
         authRequest,
         randomPin,
+        clientEcdhDidAsResolvedByWallet,
         testHarness.agent
       );
 
@@ -564,7 +590,7 @@ describe('web5 connect', function () {
 
       const options = {
         displayName        : 'Sample App',
-        client_id          : clientEphemeralPortableDid.uri,
+        client_id          : clientSigningPortableDid.uri,
         scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
         // code_challenge_method : 'S256' as const,
@@ -588,6 +614,7 @@ describe('web5 connect', function () {
         providerIdentity.did.uri,
         authRequest,
         randomPin,
+        clientEcdhDidAsResolvedByWallet,
         testHarness.agent
       );
 
@@ -612,6 +639,7 @@ describe('web5 connect', function () {
         providerIdentity.did.uri,
         authRequest,
         randomPin,
+        clientEcdhDidAsResolvedByWallet,
         testHarness.agent
       );
 
@@ -637,7 +665,7 @@ describe('web5 connect', function () {
 
       const options = {
         displayName        : 'Sample App',
-        client_id          : clientEphemeralPortableDid.uri,
+        client_id          : clientSigningPortableDid.uri,
         scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
         // code_challenge_method : 'S256' as const,
@@ -663,6 +691,7 @@ describe('web5 connect', function () {
           providerIdentity.did.uri,
           authRequest,
           randomPin,
+          clientEcdhDidAsResolvedByWallet,
           testHarness.agent
         );
 
@@ -685,7 +714,7 @@ describe('web5 connect', function () {
 
       const options = {
         displayName        : 'Sample App',
-        client_id          : clientEphemeralPortableDid.uri,
+        client_id          : clientSigningPortableDid.uri,
         scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
         // code_challenge_method : 'S256' as const,
@@ -714,6 +743,7 @@ describe('web5 connect', function () {
           providerIdentity.did.uri,
           authRequest,
           randomPin,
+          clientEcdhDidAsResolvedByWallet,
           testHarness.agent
         );
 
@@ -737,7 +767,7 @@ describe('web5 connect', function () {
 
       const options = {
         displayName        : 'Sample App',
-        client_id          : clientEphemeralPortableDid.uri,
+        client_id          : clientSigningPortableDid.uri,
         scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
         // code_challenge_method : 'S256' as const,
@@ -763,6 +793,7 @@ describe('web5 connect', function () {
           providerIdentity.did.uri,
           authRequest,
           randomPin,
+          clientEcdhDidAsResolvedByWallet,
           testHarness.agent
         );
 
@@ -789,7 +820,7 @@ describe('web5 connect', function () {
 
       const options = {
         displayName        : 'Sample App',
-        client_id          : clientEphemeralPortableDid.uri,
+        client_id          : clientSigningPortableDid.uri,
         scope              : 'openid did:jwk',
         // code_challenge        : Convert.uint8Array(codeChallenge).toBase64Url(),
         // code_challenge_method : 'S256' as const,
@@ -804,6 +835,7 @@ describe('web5 connect', function () {
           providerIdentity.did.uri,
           authRequest,
           randomPin,
+          clientEcdhDidAsResolvedByWallet,
           testHarness.agent
         );
 

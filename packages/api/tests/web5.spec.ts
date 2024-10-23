@@ -798,12 +798,7 @@ describe('web5 api', () => {
 
         sinon.stub(Web5UserAgent, 'create').resolves(testHarness.agent as Web5UserAgent);
 
-        // spy on the WalletConnect createPermissionRequestForProtocol method
-        const requestPermissionsSpy = sinon.spy(WalletConnect, 'createPermissionRequestForProtocol');
-
-        // We throw and spy on the initClient method to avoid the actual WalletConnect initialization
-        // but to still be able to spy on the passed parameters
-        sinon.stub(WalletConnect, 'initClient').throws('Error');
+        const createPermissionRequestForProtocolSpy = sinon.spy(WalletConnect, 'createPermissionRequestForProtocol');
 
         // stub the cleanUpIdentity method to avoid actual cleanup
         sinon.stub(Web5 as any, 'cleanUpIdentity').resolves();
@@ -837,12 +832,11 @@ describe('web5 api', () => {
 
           expect.fail('Should have thrown an error');
         } catch(error: any) {
-          // we expect an error because we stubbed the initClient method to throw it
-          expect(error.message).to.include('Sinon-provided Error');
+          // we expect an error because we aren't testing the whole e2e flow
+          expect(error.message).to.include('Failed to connect to wallet');
 
-          // The `createPermissionRequestForProtocol` method should have been called once for the provided protocol
-          expect(requestPermissionsSpy.callCount).to.equal(1);
-          const call = requestPermissionsSpy.getCall(0);
+          expect(createPermissionRequestForProtocolSpy.callCount).to.equal(1);
+          const call = createPermissionRequestForProtocolSpy.getCall(0);
 
           // since no explicit permissions were provided, all permissions should be requested
           expect(call.args[0].permissions).to.have.members([
@@ -857,10 +851,6 @@ describe('web5 api', () => {
 
         // spy on the WalletConnect createPermissionRequestForProtocol method
         const requestPermissionsSpy = sinon.spy(WalletConnect, 'createPermissionRequestForProtocol');
-
-        // We throw and spy on the initClient method to avoid the actual WalletConnect initialization
-        // but to still be able to spy on the passed parameters
-        sinon.stub(WalletConnect, 'initClient').throws('Error');
 
         // stub the cleanUpIdentity method to avoid actual cleanup
         sinon.stub(Web5 as any, 'cleanUpIdentity').resolves();
@@ -912,8 +902,8 @@ describe('web5 api', () => {
 
           expect.fail('Should have thrown an error');
         } catch(error: any) {
-          // we expect an error because we stubbed the initClient method to throw it
-          expect(error.message).to.include('Sinon-provided Error');
+          // we expect an error because we aren't testing the whole e2e flow
+          expect(error.message).to.include('Failed to connect to wallet');
 
           // The `createPermissionRequestForProtocol` method should have been called once for each provided request
           expect(requestPermissionsSpy.callCount).to.equal(2);
