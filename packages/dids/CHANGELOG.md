@@ -1,5 +1,19 @@
 # @web5/dids
 
+## 1.2.0
+
+### Minor Changes
+
+- [#914](https://github.com/TBD54566975/web5-js/pull/914) [`bd1cb00`](https://github.com/TBD54566975/web5-js/commit/bd1cb00616029b0d18687b597e90d3b7c4dbeae1) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Ability to Update a DID
+
+### Patch Changes
+
+- [#953](https://github.com/TBD54566975/web5-js/pull/953) [`3f39bf1`](https://github.com/TBD54566975/web5-js/commit/3f39bf1d14cf835a2959b5386a82ff7228d31e6c) Thanks [@LiranCohen](https://github.com/LiranCohen)! - Add ability to update DWN Endpoints
+
+- Updated dependencies [[`bfa0417`](https://github.com/TBD54566975/web5-js/commit/bfa0417a2e9fc1300c5e604bea19b75ab1c73645)]:
+  - @web5/common@1.1.0
+  - @web5/crypto@1.0.6
+
 ## 1.1.5
 
 ### Patch Changes

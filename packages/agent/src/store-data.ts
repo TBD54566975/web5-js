@@ -7,8 +7,8 @@ import type { Web5PlatformAgent } from './types/agent.js';
 
 import { TENANT_SEPARATOR } from './utils-internal.js';
 import { getDataStoreTenant } from './utils-internal.js';
-import { DwnInterface } from './types/dwn.js';
-import { ProtocolDefinition } from '@tbd54566975/dwn-sdk-js';
+import { DwnInterface, DwnMessageParams } from './types/dwn.js';
+import { ProtocolDefinition, RecordsReadReplyEntry } from '@tbd54566975/dwn-sdk-js';
 
 export type DataStoreTenantParams = {
   agent: Web5PlatformAgent;
@@ -26,6 +26,7 @@ export type DataStoreSetParams<TStoreObject> = DataStoreTenantParams & {
   id: string;
   data: TStoreObject;
   preventDuplicates?: boolean;
+  updateExisting?: boolean;
   useCache?: boolean;
 }
 
@@ -137,7 +138,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
     return storedRecords;
   }
 
-  public async set({ id, data, tenant, agent, preventDuplicates = true, useCache = false }:
+  public async set({ id, data, tenant, agent, preventDuplicates = true, updateExisting = false, useCache = false }:
     DataStoreSetParams<TStoreObject>
   ): Promise<void> {
     // Determine the tenant identifier (DID) for the set operation.
@@ -146,14 +147,27 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
     // initialize the storage protocol if not already done
     await this.initialize({ tenant: tenantDid, agent });
 
-    // If enabled, check if a record with the given `id` is already present in the store.
-    if (preventDuplicates) {
+    const messageParams: DwnMessageParams[DwnInterface.RecordsWrite] = { ...this._recordProperties };
+
+    if (updateExisting) {
+      // Look up the DWN record ID of the object in the store with the given `id`.
+      const matchingRecordEntry = await this.getExistingRecordEntry({ id, tenantDid, agent });
+      if (!matchingRecordEntry) {
+        throw new Error(`${this.name}: Update failed due to missing entry for: ${id}`);
+      }
+
+      // set the recordId in the messageParams to update the existing record
+      // set the dateCreated to the existing dateCreated as this is an immutable property
+      messageParams.recordId = matchingRecordEntry.recordsWrite!.recordId;
+      messageParams.dateCreated = matchingRecordEntry.recordsWrite!.descriptor.dateCreated;
+    } else if (preventDuplicates) {
       // Look up the DWN record ID of the object in the store with the given `id`.
       const matchingRecordId = await this.lookupRecordId({ id, tenantDid, agent });
       if (matchingRecordId) {
         throw new Error(`${this.name}: Import failed due to duplicate entry for: ${id}`);
       }
     }
+
 
     // Convert the store object to a byte array, which will be the data payload of the DWN record.
     const dataBytes = Convert.object(data).toUint8Array();
@@ -163,7 +177,7 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
       author        : tenantDid,
       target        : tenantDid,
       messageType   : DwnInterface.RecordsWrite,
-      messageParams : { ...this._recordProperties },
+      messageParams : { ...this._recordProperties, ...messageParams },
       dataStream    : new Blob([dataBytes], { type: 'application/json' })
     });
 
@@ -243,12 +257,12 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
       messageParams : { filter: { recordId } }
     });
 
-    if (!readReply.record?.data) {
+    if (!readReply.entry?.data) {
       throw new Error(`${this.name}: Failed to read data from DWN for: ${recordId}`);
     }
 
     // If the record was found, convert back to store object format.
-    const storeObject = await NodeStream.consumeToJson({ readable: readReply.record.data }) as TStoreObject;
+    const storeObject = await NodeStream.consumeToJson({ readable: readReply.entry.data }) as TStoreObject;
 
     // If caching is enabled, add the store object to the cache.
     if (useCache) {
@@ -295,6 +309,26 @@ export class DwnDataStore<TStoreObject extends Record<string, any> = Jwk> implem
 
     return recordId;
   }
+
+  private async getExistingRecordEntry({ id, tenantDid, agent }: {
+    id: string;
+    tenantDid: string;
+    agent: Web5PlatformAgent;
+  }): Promise<RecordsReadReplyEntry | undefined> {
+    // Look up the DWN record ID of the object in the store with the given `id`.
+    const recordId = await this.lookupRecordId({ id, tenantDid, agent });
+    if (recordId) {
+      // Read the record from the store.
+      const { reply: readReply } = await agent.dwn.processRequest({
+        author        : tenantDid,
+        target        : tenantDid,
+        messageType   : DwnInterface.RecordsRead,
+        messageParams : { filter: { recordId } }
+      });
+
+      return readReply.entry;
+    }
+  }
 }
 
 export class InMemoryDataStore<TStoreObject extends Record<string, any> = Jwk> implements AgentDataStore<TStoreObject> {
@@ -340,12 +374,19 @@ export class InMemoryDataStore<TStoreObject extends Record<string, any> = Jwk> i
     return result;
   }
 
-  public async set({ id, data, tenant, agent, preventDuplicates }: DataStoreSetParams<TStoreObject>): Promise<void> {
+  public async set({ id, data, tenant, agent, preventDuplicates, updateExisting }: DataStoreSetParams<TStoreObject>): Promise<void> {
     // Determine the tenant identifier (DID) for the set operation.
     const tenantDid = await getDataStoreTenant({ agent, tenant, didUri: id });
 
     // If enabled, check if a record with the given `id` is already present in the store.
-    if (preventDuplicates) {
+    if (updateExisting) {
+      // Look up the DWN record ID of the object in the store with the given `id`.
+      if (!this.store.has(`${tenantDid}${TENANT_SEPARATOR}${id}`)) {
+        throw new Error(`${this.name}: Update failed due to missing entry for: ${id}`);
+      }
+
+      // set the recordId in the messageParams to update the existing record
+    } else if (preventDuplicates) {
       const duplicateFound = this.store.has(`${tenantDid}${TENANT_SEPARATOR}${id}`);
       if (duplicateFound) {
         throw new Error(`${this.name}: Import failed due to duplicate entry for: ${id}`);

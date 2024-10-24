@@ -4,8 +4,8 @@ import { TestAgent } from './utils/test-agent.js';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
-import { DidJwk } from '@web5/dids';
-import { BearerIdentity } from '../src/bearer-identity.js';
+import { BearerDid, DidJwk } from '@web5/dids';
+import { logger } from '@web5/common';
 
 describe('AgentDidResolverCache',  () => {
   let resolverCache: AgentDidResolverCache;
@@ -61,11 +61,10 @@ describe('AgentDidResolverCache',  () => {
   });
 
   it('should not call resolve if the DID is not the agent DID or exists as an identity in the agent', async () => {
-    const did = await DidJwk.create({});
+    const did = await DidJwk.create();
     const getStub = sinon.stub(resolverCache['cache'], 'get').resolves(JSON.stringify({ ttlMillis: Date.now() - 1000, value: { didDocument: { id: did.uri } } }));
-    const resolveSpy = sinon.spy(testHarness.agent.did, 'resolve');
+    const resolveSpy = sinon.spy(testHarness.agent.did, 'resolve').withArgs(did.uri);
     const nextTickSpy = sinon.stub(resolverCache['cache'], 'nextTick').resolves();
-    sinon.stub(testHarness.agent.identity, 'get').resolves(undefined);
 
     await resolverCache.get(did.uri),
 
@@ -77,21 +76,52 @@ describe('AgentDidResolverCache',  () => {
     expect(nextTickSpy.callCount).to.equal(1);
   });
 
-  it('should resolve if the DID is managed by the agent', async () => {
-    const did = await DidJwk.create({});
+  it('should resolve and update if the DID is managed by the agent', async () => {
+    const did = await DidJwk.create();
+
     const getStub = sinon.stub(resolverCache['cache'], 'get').resolves(JSON.stringify({ ttlMillis: Date.now() - 1000, value: { didDocument: { id: did.uri } } }));
-    const resolveSpy = sinon.spy(testHarness.agent.did, 'resolve');
-    const nextTickSpy = sinon.stub(resolverCache['cache'], 'nextTick').resolves();
-    sinon.stub(testHarness.agent.identity, 'get').resolves(new BearerIdentity({
-      metadata: { name: 'Some Name', uri: did.uri, tenant: did.uri },
-      did,
+    const resolveSpy = sinon.spy(testHarness.agent.did, 'resolve').withArgs(did.uri);
+    sinon.stub(resolverCache['cache'], 'nextTick').resolves();
+    const didApiStub = sinon.stub(testHarness.agent.did, 'get');
+    const updateSpy = sinon.stub(testHarness.agent.did, 'update').resolves();
+    didApiStub.withArgs({ didUri: did.uri, tenant: testHarness.agent.agentDid.uri }).resolves(new BearerDid({
+      uri        : did.uri,
+      document   : { id: did.uri },
+      metadata   : { },
+      keyManager : testHarness.agent.keyManager
     }));
 
     await resolverCache.get(did.uri),
 
     // get should be called once, and we also resolve the DId as it's returned by the identity.get method
-    expect(getStub.callCount).to.equal(1);
-    expect(resolveSpy.callCount).to.equal(1);
+    expect(getStub.callCount).to.equal(1, 'get');
+    expect(resolveSpy.callCount).to.equal(1, 'resolve');
+    expect(updateSpy.callCount).to.equal(1, 'update');
+  });
+
+  it('should log an error if an update is attempted and fails', async () => {
+    const did = await DidJwk.create();
+
+    const getStub = sinon.stub(resolverCache['cache'], 'get').resolves(JSON.stringify({ ttlMillis: Date.now() - 1000, value: { didDocument: { id: did.uri } } }));
+    const resolveSpy = sinon.spy(testHarness.agent.did, 'resolve').withArgs(did.uri);
+    sinon.stub(resolverCache['cache'], 'nextTick').resolves();
+    const didApiStub = sinon.stub(testHarness.agent.did, 'get');
+    const updateSpy = sinon.stub(testHarness.agent.did, 'update').rejects(new Error('Some Error'));
+    const consoleErrorSpy = sinon.stub(logger, 'error');
+    didApiStub.withArgs({ didUri: did.uri, tenant: testHarness.agent.agentDid.uri }).resolves(new BearerDid({
+      uri        : did.uri,
+      document   : { id: did.uri },
+      metadata   : { },
+      keyManager : testHarness.agent.keyManager
+    }));
+
+    await resolverCache.get(did.uri),
+
+    // get should be called once, and we also resolve the DId as it's returned by the identity.get method
+    expect(getStub.callCount).to.equal(1, 'get');
+    expect(resolveSpy.callCount).to.equal(1, 'resolve');
+    expect(updateSpy.callCount).to.equal(1, 'update');
+    expect(consoleErrorSpy.callCount).to.equal(1, 'console.error');
   });
 
   it('does not cache notFound records', async () => {
@@ -107,7 +137,7 @@ describe('AgentDidResolverCache',  () => {
 
   it('throws if the error is anything other than a notFound error', async () => {
     const did = testHarness.agent.agentDid.uri;
-    const getStub = sinon.stub(resolverCache['cache'], 'get').rejects(new Error('Some Error'));
+    sinon.stub(resolverCache['cache'], 'get').rejects(new Error('Some Error'));
 
     try {
       await resolverCache.get(did);

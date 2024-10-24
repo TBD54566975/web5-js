@@ -1,5 +1,6 @@
 import { DidResolutionResult, DidResolverCache, DidResolverCacheLevel, DidResolverCacheLevelParams } from '@web5/dids';
 import { Web5PlatformAgent } from './types/agent.js';
+import { logger } from '@web5/common';
 
 
 /**
@@ -47,11 +48,33 @@ export class AgentDidResolverCache extends DidResolverCacheLevel implements DidR
       const cachedResult = JSON.parse(str);
       if (!this._resolving.has(did) && Date.now() >= cachedResult.ttlMillis) {
         this._resolving.set(did, true);
-        if (this.agent.agentDid.uri === did || 'undefined' !==  typeof await this.agent.identity.get({ didUri: did })) {
+
+        // if a DID is stored in the DID Store, then we don't want to evict it from the cache until we have a successful resolution
+        // upon a successful resolution, we will update both the storage and the cache with the newly resolved Document.
+        const storedDid = await this.agent.did.get({ didUri: did, tenant: this.agent.agentDid.uri });
+        if ('undefined' !==  typeof storedDid) {
           try {
             const result = await this.agent.did.resolve(did);
-            if (!result.didResolutionMetadata.error) {
-              this.set(did, result);
+
+            // if the resolution was successful, update the stored DID with the new Document
+            if (!result.didResolutionMetadata.error && result.didDocument) {
+
+              const portableDid = {
+                ...storedDid,
+                document : result.didDocument,
+                metadata : result.didDocumentMetadata,
+              };
+
+              try {
+                // this will throw an error if the DID is not managed by the agent, or there is no difference between the stored and resolved DID
+                // We don't publish the DID in this case, as it was received by the resolver.
+                await this.agent.did.update({ portableDid, tenant: this.agent.agentDid.uri, publish: false });
+              } catch(error: any) {
+                // if the error is not due to no changes detected, log the error
+                if (error.message && !error.message.includes('No changes detected, update aborted')) {
+                  logger.error(`Error updating DID: ${error.message}`);
+                }
+              }
             }
           } finally {
             this._resolving.delete(did);

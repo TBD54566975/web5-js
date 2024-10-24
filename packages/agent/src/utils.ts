@@ -1,10 +1,10 @@
 import type { DidUrlDereferencer } from '@web5/dids';
-import { PaginationCursor, RecordsDeleteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
+import { Jws, PaginationCursor, RecordsDeleteMessage, RecordsWriteMessage } from '@tbd54566975/dwn-sdk-js';
 
 import { Readable } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { ReadableWebToNodeStream } from 'readable-web-to-node-stream';
-import { DateSort, DwnInterfaceName, DwnMethodName, Message, Records, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
+import { DateSort, DwnInterfaceName, DwnMethodName, Message, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 
 export function blobToIsomorphicNodeReadable(blob: Blob): Readable {
   return webReadableToIsomorphicNodeReadable(blob.stream() as ReadableStream<any>);
@@ -40,6 +40,14 @@ export async function getDwnServiceEndpointUrls(didUri: string, dereferencer: Di
 
 export function getRecordAuthor(record: RecordsWriteMessage | RecordsDeleteMessage): string | undefined {
   return Message.getAuthor(record);
+}
+
+/**
+ * Get the `protocolRole` string from the signature payload of the given RecordsWriteMessage or RecordsDeleteMessage.
+ */
+export function getRecordProtocolRole(message: RecordsWriteMessage | RecordsDeleteMessage): string | undefined {
+  const signaturePayload = Jws.decodePlainObjectPayload(message.authorization.signature);
+  return signaturePayload?.protocolRole;
 }
 
 export function isRecordsWrite(obj: unknown): obj is RecordsWrite {

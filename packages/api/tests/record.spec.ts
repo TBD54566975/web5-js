@@ -1,23 +1,24 @@
 import type { BearerDid ,PortableDid } from '@web5/dids';
-import type { DwnMessageParams, DwnProtocolDefinition, DwnPublicKeyJwk, DwnSigner } from '@web5/agent';
+import type { DwnMessageParams, DwnProtocolDefinition, DwnPublicKeyJwk, DwnSigner, ProcessDwnRequest } from '@web5/agent';
 
 import sinon from 'sinon';
 import { expect } from 'chai';
 import { NodeStream } from '@web5/common';
 import { utils as didUtils } from '@web5/dids';
 import { Web5UserAgent } from '@web5/user-agent';
-import { DwnConstant, DwnDateSort, DwnEncryptionAlgorithm, DwnInterface, DwnKeyDerivationScheme, dwnMessageConstructors, getRecordAuthor, Oidc, PlatformAgentTestHarness, WalletConnect } from '@web5/agent';
+import { DwnConstant, DwnDateSort, DwnEncryptionAlgorithm, DwnInterface, DwnKeyDerivationScheme, dwnMessageConstructors, getRecordAuthor, getRecordProtocolRole, Oidc, PlatformAgentTestHarness, WalletConnect } from '@web5/agent';
 import { Record } from '../src/record.js';
 import { DwnApi } from '../src/dwn-api.js';
 import { dataToBlob } from '../src/utils.js';
 import { testDwnUrl } from './utils/test-config.js';
 import { TestDataGenerator } from './utils/test-data-generator.js';
 import emailProtocolDefinition from './fixtures/protocol-definitions/email.json' assert { type: 'json' };
+import notesProtocolDefinition from './fixtures/protocol-definitions/notes.json' assert { type: 'json' };
 
 // NOTE: @noble/secp256k1 requires globalThis.crypto polyfill for node.js <=18: https://github.com/paulmillr/noble-secp256k1/blob/main/README.md#usage
 // Remove when we move off of node.js v18 to v20, earliest possible time would be Oct 2023: https://github.com/nodejs/release#release-schedule
 import { webcrypto } from 'node:crypto';
-import { Jws, Message, Poller } from '@tbd54566975/dwn-sdk-js';
+import { Jws, Message, Poller, RecordsWrite } from '@tbd54566975/dwn-sdk-js';
 import { Web5 } from '../src/web5.js';
 // @ts-ignore
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
@@ -2610,58 +2611,6 @@ describe('Record', () => {
       expect(readResultAfterUpdate.status.code).to.equal(401);
     });
 
-    it('updates a record locally that only written to a remote DWN', async () => {
-      // Create a record but do not store it on the local DWN.
-      const { status, record } = await dwnAlice.records.write({
-        store   : false,
-        data    : 'Hello, world!',
-        message : {
-          schema     : 'foo/bar',
-          dataFormat : 'text/plain'
-        }
-      });
-      expect(status.code).to.equal(202);
-      expect(record).to.not.be.undefined;
-
-      // Store the data CID of the record before it is updated.
-      const dataCidBeforeDataUpdate = record!.dataCid;
-
-      // Write the record to a remote DWN.
-      const { status: sendStatus } = await record!.send(aliceDid.uri);
-      expect(sendStatus.code).to.equal(202);
-
-      // fails because record has not been stored in the local dwn yet
-      let updateResult = await record!.update({ data: 'bye' });
-      expect(updateResult.status.code).to.equal(400);
-      expect(updateResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: Initial write is not found.');
-
-      const { status: recordStoreStatus }=  await record.store();
-      expect(recordStoreStatus.code).to.equal(202);
-
-      // now succeeds with the update
-      updateResult = await record!.update({ data: 'bye' });
-      expect(updateResult.status.code).to.equal(202);
-
-      // Confirm that the record was written to the local DWN.
-      const readResult = await dwnAlice.records.read({
-        message: {
-          filter: {
-            recordId: record!.id
-          }
-        }
-      });
-      expect(readResult.status.code).to.equal(200);
-      expect(readResult.record).to.not.be.undefined;
-
-      // Confirm that the data CID of the record was updated.
-      expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
-      expect(readResult.record.dataCid).to.equal(record!.dataCid);
-
-      // Confirm that the data payload of the record was modified.
-      const updatedData = await record!.data.text();
-      expect(updatedData).to.equal('bye');
-    });
-
     it('allows to update a record locally that was initially read from a remote DWN if store() is issued', async () => {
       // Create a record but do not store it on the local DWN.
       const { status, record } = await dwnAlice.records.write({
@@ -2724,7 +2673,7 @@ describe('Record', () => {
       expect(readResult.record.dataCid).to.equal(readRecord.dataCid);
     });
 
-    it('updates a record locally that was initially queried from a remote DWN', async () => {
+    it('updates a record that was queried from a remote DWN without storing it', async () => {
       // Create a record but do not store it on the local DWN.
       const { status, record } = await dwnAlice.records.write({
         store   : false,
@@ -2745,7 +2694,7 @@ describe('Record', () => {
       expect(sendStatus.code).to.equal(202);
 
       // Query the record from the remote DWN.
-      const queryResult = await dwnAlice.records.query({
+      let queryResult = await dwnAlice.records.query({
         from    : aliceDid.uri,
         message : {
           filter: {
@@ -2757,37 +2706,95 @@ describe('Record', () => {
       expect(queryResult.records).to.not.be.undefined;
       expect(queryResult.records.length).to.equal(1);
 
-      // Attempt to update the queried record, which will fail because we haven't stored the queried record locally yet
+      // Attempt to update the queried record
       const [ queriedRecord ] = queryResult.records;
-      let updateResult = await queriedRecord!.update({ data: 'bye' });
-      expect(updateResult.status.code).to.equal(400);
-      expect(updateResult.status.detail).to.equal('RecordsWriteGetInitialWriteNotFound: Initial write is not found.');
-
-      // store the queried record
-      const { status: queriedStoreStatus } = await queriedRecord.store();
-      expect(queriedStoreStatus.code).to.equal(202);
-
-      updateResult = await queriedRecord!.update({ data: 'bye' });
+      let updateResult = await queriedRecord!.update({ data: 'Updated, world!', store: false });
       expect(updateResult.status.code).to.equal(202);
 
-      // Confirm that the record was written to the local DWN.
-      const readResult = await dwnAlice.records.read({
+      // confirm that the record does not exist locally
+      queryResult = await dwnAlice.records.read({
         message: {
           filter: {
             recordId: record!.id
           }
         }
       });
+      expect(queryResult.status.code).to.equal(404);
+    });
+
+    it('updates a record which has a parent reference from a remote DWN without storing it or its parent', async () => {
+      // create a parent thread
+      const { status: threadStatus, record: threadRecord } = await dwnAlice.records.write({
+        store   : false,
+        data    : 'Hello, world!',
+        message : {
+          protocol     : protocolDefinition.protocol,
+          schema       : protocolDefinition.types.thread.schema,
+          protocolPath : 'thread'
+        }
+      });
+
+      expect(threadStatus.code).to.equal(202);
+      expect(threadRecord).to.not.be.undefined;
+
+      const { status: threadSendStatus } = await threadRecord.send();
+      expect(threadSendStatus.code).to.equal(202);
+
+      // create an email with the thread as a parent
+      const { status: emailStatus, record: emailRecord } = await dwnAlice.records.write({
+        store   : false,
+        data    : 'Hello, world!',
+        message : {
+          parentContextId : threadRecord.contextId,
+          protocol        : protocolDefinition.protocol,
+          protocolPath    : 'thread/email',
+          schema          : protocolDefinition.types.email.schema
+        }
+      });
+      expect(emailStatus.code).to.equal(202);
+      expect(emailRecord).to.not.be.undefined;
+
+      const { status: emailSendStatus } = await emailRecord!.send();
+      expect(emailSendStatus.code).to.equal(202);
+
+      // update email record
+      const { status: updateStatus } = await emailRecord!.update({ data: 'updated email record', store: false });
+      expect(updateStatus.code).to.equal(202);
+
+      const { status: updateEmailSendStatus } = await emailRecord!.send();
+      expect(updateEmailSendStatus.code).to.equal(202);
+
+      let readResult = await dwnAlice.records.read({
+        from    : aliceDid.uri,
+        message : {
+          filter: {
+            recordId: emailRecord.id
+          }
+        }
+      });
+
       expect(readResult.status.code).to.equal(200);
       expect(readResult.record).to.not.be.undefined;
+      expect(await readResult.record.data.text()).to.equal('updated email record');
 
-      // Confirm that the data CID of the record was updated.
-      expect(readResult.record.dataCid).to.not.equal(dataCidBeforeDataUpdate);
-      expect(readResult.record.dataCid).to.equal(queriedRecord!.dataCid);
+      // confirm that records do not exist locally
+      readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: emailRecord.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(404);
 
-      // Confirm that the data payload of the record was modified.
-      const updatedData = await queriedRecord!.data.text();
-      expect(updatedData).to.equal('bye');
+      readResult = await dwnAlice.records.read({
+        message: {
+          filter: {
+            recordId: threadRecord.id
+          }
+        }
+      });
+      expect(readResult.status.code).to.equal(404);
     });
 
     it('updates a record which has a parent reference', async () => {
@@ -3085,6 +3092,145 @@ describe('Record', () => {
       expect(readResultAlice.record!.creator).to.equal(aliceDid.uri);
       // bob is the author
       expect(readResultAlice.record!.author).to.equal(bobDid.uri);
+    });
+
+    it('updates a record using a different protocolRole than the one used when querying for/reading the record', async () => {
+      // scenario: Bob has a notes protocol that has friends who can read/query/subscribe to notes, but coAuthors that can update notes.
+      // When Alice uses her friend role to query for notes, she cannot update them with that same role. Instead she uses her coAuthor role update.
+
+      const protocol = {
+        ...notesProtocolDefinition,
+        protocol: 'http://example.com/notes' + TestDataGenerator.randomString(15)
+      };
+
+      // Bob configures the notes protocol for himself
+      const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
+        message: {
+          definition: protocol
+        }
+      });
+      expect(bobProtocolStatus.code).to.equal(202);
+      const { status: bobProtocolSendStatus } = await bobProtocol.send(bobDid.uri);
+      expect(bobProtocolSendStatus.code).to.equal(202);
+
+      // Alice must also configure the protocol to make updates.
+      // NOTE: This is not desireable and there is an issue to address this:
+      // https://github.com/TBD54566975/web5-js/issues/955
+      const { status: aliceProtocolStatus, protocol: aliceProtocol } = await dwnAlice.protocols.configure({
+        message: {
+          definition: protocol
+        }
+      });
+      expect(aliceProtocolStatus.code).to.equal(202);
+      const { status: aliceProtocolSend } = await aliceProtocol.send(aliceDid.uri);
+      expect(aliceProtocolSend.code).to.equal(202);
+
+      // Bob creates a few notes ensuring that the data is larger than the max encoded size
+      // that way the data will be requested with a separate `read` request
+      const records: Set<string> = new Set();
+      for (let i = 0; i < 3; i++) {
+        const data = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1);
+        const { status: noteCreateStatus, record: noteRecord } = await dwnBob.records.create({
+          data,
+          message: {
+            protocol     : protocol.protocol,
+            protocolPath : 'note',
+            schema       : protocol.types.note.schema,
+            dataFormat   : 'text/plain',
+          }
+        });
+        expect(noteCreateStatus.code).to.equal(202);
+        const { status: noteSendStatus } = await noteRecord.send();
+        expect(noteSendStatus.code).to.equal(202);
+        records.add(noteRecord.id);
+      }
+
+      // Bob makes Alice a `friend` to allow her to read and comment on his notes
+      const { status: friendCreateStatus, record: friendRecord} = await dwnBob.records.create({
+        data    : 'friend!',
+        message : {
+          recipient    : aliceDid.uri,
+          protocol     : protocol.protocol,
+          protocolPath : 'friend',
+          schema       : protocol.types.friend.schema,
+          dataFormat   : 'text/plain'
+        }
+      });
+      expect(friendCreateStatus.code).to.equal(202);
+      const { status: bobFriendSendStatus } = await friendRecord.send(bobDid.uri);
+      expect(bobFriendSendStatus.code).to.equal(202);
+
+      // Bob makes alice a 'coAuthor' of one of his notes
+      const aliceCoAuthorNoteId = records.keys().next().value;
+      const { status: coAuthorStatus, record: coAuthorRecord } = await dwnBob.records.create({
+        data    : aliceDid.uri,
+        message : {
+          parentContextId : aliceCoAuthorNoteId,
+          recipient       : aliceDid.uri,
+          protocol        : protocol.protocol,
+          protocolPath    : 'note/coAuthor',
+          schema          : protocol.types.coAuthor.schema,
+          dataFormat      : 'text/plain'
+        }
+      });
+      expect(coAuthorStatus.code).to.equal(202);
+      const { status: coAuthorSendStatus } = await coAuthorRecord.send(bobDid.uri);
+      expect(coAuthorSendStatus.code).to.equal(202);
+
+      // Alice querying for bob's notes using her friend role
+      const { status: aliceQueryStatus, records: bobNotesAliceQuery } = await dwnAlice.records.query({
+        from    : bobDid.uri,
+        message : {
+          protocolRole : 'friend',
+          filter       : {
+            protocol     : protocol.protocol,
+            protocolPath : 'note',
+          }
+        }
+      });
+      expect(aliceQueryStatus.code).to.equal(200);
+      expect(bobNotesAliceQuery).to.not.be.undefined;
+      expect(bobNotesAliceQuery.length).to.equal(records.size);
+
+      // Alice looks for the record she has a co-author rule on
+      const coAuthorNote = bobNotesAliceQuery.find((record) => record.id === aliceCoAuthorNoteId);
+      expect(coAuthorNote).to.not.be.undefined;
+
+      // Alice must import the record to be able to update it
+      // NOTE this should be removed after: https://github.com/TBD54566975/web5-js/issues/955
+      const { status: importStatus } = await coAuthorNote.import();
+      expect(importStatus.code).to.equal(202);
+
+      // Alice updates the co-author note without providing a new role
+      const { status: updateStatus } = await coAuthorNote!.update({ data: 'updated note' });
+      expect(updateStatus.code).to.equal(202);
+
+      // spy on sendDwnRequest to ensure that the protocolRole is used to read the data of the notes
+      const sendDwnRequestSpy = sinon.spy(testHarness.agent, 'sendDwnRequest');
+
+      // confirm that it starts with 0 calls
+      expect(sendDwnRequestSpy.callCount).to.equal(0);
+
+      // This is accepted locally but will fail when sending the update to the remote DWN
+      const { status: sendStatus } = await coAuthorNote.send(bobDid.uri);
+      expect(sendStatus.code).to.equal(401);
+      expect(sendDwnRequestSpy.callCount).to.equal(2); // the first call is for the initialWrite
+      let record = (sendDwnRequestSpy.secondCall.args[0] as ProcessDwnRequest<DwnInterface.RecordsWrite>).rawMessage;
+      let sendAuthorizationRole = getRecordProtocolRole(record);
+      expect(sendAuthorizationRole).to.equal('friend');
+
+      const { status: updateStatusCoAuthor } = await coAuthorNote!.update({ data: 'updated note', protocolRole: 'note/coAuthor' });
+      expect(updateStatusCoAuthor.code).to.equal(202);
+
+      sendDwnRequestSpy.resetHistory();
+
+      // Now update the record with the correct role
+      const { status: sendStatusCoAuthor } = await coAuthorNote.send(bobDid.uri);
+      expect(sendStatusCoAuthor.code).to.equal(202);
+      expect(sendDwnRequestSpy.callCount).to.equal(1); // the initialWrite was already sent and added to the sent-cache, only the update is sent
+      record = (sendDwnRequestSpy.firstCall.args[0] as ProcessDwnRequest<DwnInterface.RecordsWrite>).rawMessage;
+      sendAuthorizationRole = getRecordProtocolRole(record);
+      expect(sendAuthorizationRole).to.equal('note/coAuthor');
     });
   });
 
@@ -3658,6 +3804,140 @@ describe('Record', () => {
       expect(bobsRecordToDelete.deleted).to.be.true;
 
       await subscription.close();
+    });
+
+    it('deletes a record using a different protocolRole than the one used when querying for/reading the record', async () => {
+      // scenario: Bob has a notes protocol that has friends who can read/query/subscribe to notes, but coAuthors that can update/delete notes.
+      // When Alice uses her friend role to query for notes, she cannot delete them with that same role. Instead she uses her coAuthor role to delete.
+
+      const protocol = {
+        ...notesProtocolDefinition,
+        protocol: 'http://example.com/notes' + TestDataGenerator.randomString(15)
+      };
+
+      // Bob configures the notes protocol for himself
+      const { status: bobProtocolStatus, protocol: bobProtocol } = await dwnBob.protocols.configure({
+        message: {
+          definition: protocol
+        }
+      });
+      expect(bobProtocolStatus.code).to.equal(202);
+      const { status: bobProtocolSendStatus } = await bobProtocol.send(bobDid.uri);
+      expect(bobProtocolSendStatus.code).to.equal(202);
+
+      // Alice must also configure the protocol to make updates.
+      // NOTE: This is not desireable and there is an issue to address this:
+      // https://github.com/TBD54566975/web5-js/issues/955
+      const { status: aliceProtocolStatus, protocol: aliceProtocol } = await dwnAlice.protocols.configure({
+        message: {
+          definition: protocol
+        }
+      });
+      expect(aliceProtocolStatus.code).to.equal(202);
+      const { status: aliceProtocolSend } = await aliceProtocol.send(aliceDid.uri);
+      expect(aliceProtocolSend.code).to.equal(202);
+
+      // Bob creates a few notes ensuring that the data is larger than the max encoded size
+      // that way the data will be requested with a separate `read` request
+      const records: Set<string> = new Set();
+      for (let i = 0; i < 3; i++) {
+        const data = TestDataGenerator.randomString(DwnConstant.maxDataSizeAllowedToBeEncoded + 1);
+        const { status: noteCreateStatus, record: noteRecord } = await dwnBob.records.create({
+          data,
+          message: {
+            protocol     : protocol.protocol,
+            protocolPath : 'note',
+            schema       : protocol.types.note.schema,
+            dataFormat   : 'text/plain',
+          }
+        });
+        expect(noteCreateStatus.code).to.equal(202);
+        const { status: noteSendStatus } = await noteRecord.send();
+        expect(noteSendStatus.code).to.equal(202);
+        records.add(noteRecord.id);
+      }
+
+      // Bob makes Alice a `friend` to allow her to read and comment on his notes
+      const { status: friendCreateStatus, record: friendRecord} = await dwnBob.records.create({
+        data    : 'friend!',
+        message : {
+          recipient    : aliceDid.uri,
+          protocol     : protocol.protocol,
+          protocolPath : 'friend',
+          schema       : protocol.types.friend.schema,
+          dataFormat   : 'text/plain'
+        }
+      });
+      expect(friendCreateStatus.code).to.equal(202);
+      const { status: bobFriendSendStatus } = await friendRecord.send(bobDid.uri);
+      expect(bobFriendSendStatus.code).to.equal(202);
+
+      // Bob makes alice a 'coAuthor' of one of his notes
+      const aliceCoAuthorNoteId = records.keys().next().value;
+      const { status: coAuthorStatus, record: coAuthorRecord } = await dwnBob.records.create({
+        data    : aliceDid.uri,
+        message : {
+          parentContextId : aliceCoAuthorNoteId,
+          recipient       : aliceDid.uri,
+          protocol        : protocol.protocol,
+          protocolPath    : 'note/coAuthor',
+          schema          : protocol.types.coAuthor.schema,
+          dataFormat      : 'text/plain'
+        }
+      });
+      expect(coAuthorStatus.code).to.equal(202);
+      const { status: coAuthorSendStatus } = await coAuthorRecord.send(bobDid.uri);
+      expect(coAuthorSendStatus.code).to.equal(202);
+
+      // Alice querying for bob's notes using her friend role
+      const { status: aliceQueryStatus, records: bobNotesAliceQuery } = await dwnAlice.records.query({
+        from    : bobDid.uri,
+        message : {
+          protocolRole : 'friend',
+          filter       : {
+            protocol     : protocol.protocol,
+            protocolPath : 'note',
+          }
+        }
+      });
+      expect(aliceQueryStatus.code).to.equal(200);
+      expect(bobNotesAliceQuery).to.not.be.undefined;
+      expect(bobNotesAliceQuery.length).to.equal(records.size);
+
+      // Alice looks for the record she has a co-author rule on
+      const coDeleteNote = bobNotesAliceQuery.find((record) => record.id === aliceCoAuthorNoteId);
+      expect(coDeleteNote).to.not.be.undefined;
+
+      // spy on sendDwnRequest to ensure that the protocolRole is used to read the data of the notes
+      const sendDwnRequestSpy = sinon.spy(testHarness.agent, 'sendDwnRequest');
+
+      // confirm that it starts with 0 calls
+      expect(sendDwnRequestSpy.callCount).to.equal(0);
+
+      const { status: deleteStatus } = await coDeleteNote.delete({ store: false });
+      expect(deleteStatus.code).to.equal(202);
+
+      const { status: sendDeleteStatus } = await coDeleteNote.send(bobDid.uri);
+      expect(sendDeleteStatus.code).to.equal(401);
+
+      expect(sendDwnRequestSpy.callCount).to.equal(2); // the first call is for the initialWrite
+      let record = (sendDwnRequestSpy.secondCall.args[0] as ProcessDwnRequest<DwnInterface.RecordsWrite>).rawMessage;
+      let sendAuthorizationRole = getRecordProtocolRole(record);
+      expect(sendAuthorizationRole).to.equal('friend');
+
+      sendDwnRequestSpy.resetHistory();
+
+      // Now update the record with the correct role
+      const { status: updateStatusCoAuthor } = await coDeleteNote.delete({ protocolRole: 'note/coAuthor', store: false });
+      expect(updateStatusCoAuthor.code).to.equal(202, `delete: ${updateStatusCoAuthor.detail}`);
+
+      const { status: sendStatusCoAuthor } = await coDeleteNote.send(bobDid.uri);
+      expect(sendStatusCoAuthor.code).to.equal(202, `delete send: ${sendStatusCoAuthor.detail}`);
+
+      expect(sendDwnRequestSpy.callCount).to.equal(1); // the initialWrite was already sent and added to the sent-cache, only the update is sent
+      record = (sendDwnRequestSpy.firstCall.args[0] as ProcessDwnRequest<DwnInterface.RecordsWrite>).rawMessage;
+      sendAuthorizationRole = getRecordProtocolRole(record);
+      expect(sendAuthorizationRole).to.equal('note/coAuthor');
     });
   });
 

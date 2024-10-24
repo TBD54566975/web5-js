@@ -1,5 +1,11 @@
 # @web5/common
 
+## 1.1.0
+
+### Minor Changes
+
+- [#948](https://github.com/TBD54566975/web5-js/pull/948) [`bfa0417`](https://github.com/TBD54566975/web5-js/commit/bfa0417a2e9fc1300c5e604bea19b75ab1c73645) Thanks [@thehenrytsai](https://github.com/thehenrytsai)! - Added a logger.
+
 ## 1.0.2
 
 ### Patch Changes

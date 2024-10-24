@@ -21,6 +21,7 @@ import {
   SendDwnRequest,
   PermissionsApi,
   AgentPermissionsApi,
+  getRecordProtocolRole
 } from '@web5/agent';
 
 import { Convert, isEmptyObject, NodeStream, removeUndefinedProperties, Stream } from '@web5/common';
@@ -140,6 +141,9 @@ export type RecordUpdateParams = {
    */
   dataCid?: DwnMessageDescriptor[DwnInterface.RecordsWrite]['dataCid'];
 
+  /** Whether or not to store the updated message. */
+  store?: boolean;
+
   /** The data format/MIME type of the supplied data */
   dataFormat?: string;
 
@@ -183,6 +187,9 @@ export type RecordDeleteParams = {
 
   /** The timestamp indicating when the record was deleted. */
   dateModified?: DwnMessageDescriptor[DwnInterface.RecordsDelete]['messageTimestamp'];
+
+  /** The protocol role under which this record will be deleted. */
+  protocolRole?: string;
 };
 
 /**
@@ -310,7 +317,6 @@ export class Record implements RecordModel {
 
   /** Tags of the record */
   get tags() { return this._recordsWriteDescriptor?.tags; }
-
 
   // Getters for for properties that depend on the current state of the Record.
   /** DID that is the logical author of the Record. */
@@ -703,7 +709,7 @@ export class Record implements RecordModel {
    *
    * @beta
    */
-  async update({ dateModified, data, ...params }: RecordUpdateParams): Promise<DwnResponseStatus> {
+  async update({ dateModified, data, protocolRole, store = true, ...params }: RecordUpdateParams): Promise<DwnResponseStatus> {
 
     if (this.deleted) {
       throw new Error('Record: Cannot revive a deleted record.');
@@ -718,6 +724,7 @@ export class Record implements RecordModel {
       ...descriptor,
       ...params,
       parentContextId,
+      protocolRole     : protocolRole ?? this._protocolRole, // Use the current protocolRole if not provided.
       messageTimestamp : dateModified, // Map Record class `dateModified` property to DWN SDK `messageTimestamp`
       recordId         : this._recordId
     };
@@ -756,6 +763,7 @@ export class Record implements RecordModel {
       messageParams : { ...updateMessage },
       messageType   : DwnInterface.RecordsWrite,
       target        : this._connectedDid,
+      store
     };
 
     if (this._delegateDid) {
@@ -786,7 +794,7 @@ export class Record implements RecordModel {
 
       // Only update the local Record instance mutable properties if the record was successfully (over)written.
       this._authorization = responseMessage.authorization;
-      this._protocolRole = params.protocolRole;
+      this._protocolRole = updateMessage.protocolRole;
       mutableDescriptorProperties.forEach(property => {
         this._descriptor[property] = responseMessage.descriptor[property];
       });
@@ -834,8 +842,11 @@ export class Record implements RecordModel {
       store
     };
 
-    if (this.deleted) {
-      // if we have a delete message we can just use it
+    // Check to see if the provided protocolRole within the deleteParams is different from the current protocolRole.
+    const differentRole = deleteParams?.protocolRole ? getRecordProtocolRole(this.rawMessage)  !== deleteParams.protocolRole : false;
+    // If the record is already in a deleted state but the protocolRole is different, we need to construct a delete message with the new protocolRole
+    // otherwise we can just use the existing delete message.
+    if (this.deleted && !differentRole) {
       deleteOptions.rawMessage = this.rawMessage as DwnMessage[DwnInterface.RecordsDelete];
     } else {
       // otherwise we construct a delete message given the `RecordDeleteParams`
@@ -843,6 +854,7 @@ export class Record implements RecordModel {
         prune            : prune,
         recordId         : this._recordId,
         messageTimestamp : dateModified,
+        protocolRole     : deleteParams?.protocolRole ?? this._protocolRole // if no protocolRole is provided, use the current protocolRole
       };
     }
 
@@ -1023,7 +1035,7 @@ export class Record implements RecordModel {
   private async readRecordData({ target, isRemote }: { target: string, isRemote: boolean }) {
     const readRequest: ProcessDwnRequest<DwnInterface.RecordsRead> = {
       author        : this._connectedDid,
-      messageParams : { filter: { recordId: this.id } },
+      messageParams : { filter: { recordId: this.id }, protocolRole: this._protocolRole },
       messageType   : DwnInterface.RecordsRead,
       target,
     };
@@ -1062,12 +1074,12 @@ export class Record implements RecordModel {
       this._agent.processDwnRequest(readRequest);
 
     try {
-      const { reply: { status, record }} = await agentResponsePromise;
+      const { reply: { status, entry }} = await agentResponsePromise;
       if (status.code !== 200) {
         throw new Error(`${status.code}: ${status.detail}`);
       }
 
-      const dataStream: ReadableStream | Readable = record.data;
+      const dataStream: ReadableStream | Readable = entry.data;
       // If the data stream is a web ReadableStream, convert it to a Node.js Readable.
       const nodeReadable = Stream.isReadableStream(dataStream) ?
         NodeStream.fromWebReadable({ readableStream: dataStream }) :

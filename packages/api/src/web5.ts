@@ -44,6 +44,7 @@ export type ConnectPermissionRequest = {
    * The protocol definition for the protocol being requested.
    */
   protocolDefinition: DwnProtocolDefinition;
+
   /**
    * The permissions being requested for the protocol. If none are provided, the default is to request all permissions.
    */
@@ -51,9 +52,14 @@ export type ConnectPermissionRequest = {
 }
 
 /**
- * Options for connecting to a Web5 agent. This includes the ability to connect to an external wallet
+ * Options for connecting to a Web5 agent. This includes the ability to connect to an external wallet.
+ *
+ * NOTE: the returned `ConnectPermissionRequest` type is different to the `ConnectPermissionRequest` type in the `@web5/agent` package.
  */
 export type ConnectOptions = Omit<WalletConnectOptions, 'permissionRequests'> & {
+  /** The user friendly name of the client/app to be displayed when prompting end-user with permission requests. */
+  displayName: string;
+
   /**
    * The permissions that are being requested for the connected DID.
    * This is used to create the {@link ConnectPermissionRequest} for the wallet connect flow.

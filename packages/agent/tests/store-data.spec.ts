@@ -702,6 +702,66 @@ describe('AgentDataStore', () => {
             expect(error.message).to.include('Failed to install protocol: 500 - Internal Server Error');
           }
         });
+
+        describe('updateExisting', () => {
+          it('updates an existing record', async () => {
+
+            // Create and import a DID.
+            let bearerDid = await DidJwk.create();
+            const importedDid = await testHarness.agent.did.import({
+              portableDid : await bearerDid.export(),
+              tenant      : testHarness.agent.agentDid.uri
+            });
+
+            const portableDid = await importedDid.export();
+
+            // update did document's service
+            const updatedDid = {
+              ...portableDid,
+              document: {
+                ...portableDid.document,
+                service: [{ id: 'test-service', type: 'test-type', serviceEndpoint: 'test-endpoint' }]
+              }
+            };
+
+            // get the length of the list before updating to confirm that no additional records are added
+            const listLength = (await testStore.list({ agent: testHarness.agent })).length;
+
+            // Update the DID in the store.
+            await testStore.set({
+              id             : importedDid.uri,
+              data           : updatedDid,
+              agent          : testHarness.agent,
+              updateExisting : true,
+              tenant         : testHarness.agent.agentDid.uri
+            });
+
+            // Verify the DID is in the store.
+            const storedDid = await testStore.get({ id: importedDid.uri, agent: testHarness.agent, tenant: testHarness.agent.agentDid.uri });
+            expect(storedDid!.uri).to.equal(updatedDid.uri);
+            expect(storedDid!.document).to.deep.equal(updatedDid.document);
+
+            // verify that no additional records were added
+            const updatedListLength = (await testStore.list({ agent: testHarness.agent })).length;
+            expect(updatedListLength).to.equal(listLength);
+          });
+
+          it('throws an error if the record does not exist', async () => {
+            const did = await DidJwk.create();
+            const portableDid = await did.export();
+            try {
+              await testStore.set({
+                id             : portableDid.uri,
+                data           : portableDid,
+                agent          : testHarness.agent,
+                updateExisting : true
+              });
+              expect.fail('Expected an error to be thrown');
+            } catch (error: any) {
+              expect(error.message).to.include(`${TestStore.name}: Update failed due to missing entry for: ${portableDid.uri}`);
+            }
+          });
+        });
       });
     });
   });
