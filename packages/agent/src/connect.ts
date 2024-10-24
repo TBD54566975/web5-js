@@ -1,10 +1,11 @@
-
 import type { PushedAuthResponse } from './oidc.js';
-import type { DwnPermissionScope, DwnProtocolDefinition, Web5Agent, Web5ConnectAuthResponse } from './index.js';
+import type {
+  DwnPermissionScope,
+  DwnProtocolDefinition,
+  Web5ConnectAuthResponse,
+} from './index.js';
 
-import {
-  Oidc,
-} from './oidc.js';
+import { Oidc } from './oidc.js';
 import { pollWithTtl } from './utils.js';
 
 import { Convert, logger } from '@web5/common';
@@ -13,8 +14,95 @@ import { DidJwk } from '@web5/dids';
 import { DwnInterfaceName, DwnMethodName } from '@tbd54566975/dwn-sdk-js';
 
 /**
- * Initiates the wallet connect process. Used when a client wants to obtain
- * a did from a provider.
+ * Settings provided by users who wish to allow their DWA to connect to a wallet
+ * and either transfer their DID to that wallet (when `exported: true`)
+ * or transfer a DID from their wallet (without `exported: true`).
+ */
+export type WalletConnectOptions = {
+  /** The user friendly name of the app to be displayed when prompting end-user with permission requests. */
+  displayName: string;
+
+  /** The URL of the intermediary server which relays messages between the client and provider */
+  connectServerUrl: string;
+
+  /**
+   * The URI of the Provider (wallet).The `onWalletUriReady` will take this wallet
+   * uri and add a payload to it which will be used to obtain and decrypt from the `request_uri`.
+   * @example `web5://` or `http://localhost:3000/`.
+   */
+  walletUri: string;
+
+  /**
+   * The protocols of permissions requested, along with the definition and
+   * permission scopes for each protocol.
+   * If `exported` is true these will be created automatically.
+   */
+  permissionRequests: ConnectUserPermissionRequest[];
+
+  /**
+   * Can be set to true if the DWA wants to transfer its identity to the wallet
+   * instead of get an identity from the wallet
+   */
+  exported?: boolean;
+
+  /**
+   * The Web5 API provides a URI to the wallet based on the `walletUri` plus a query params payload valid for 5 minutes.
+   * The link can either be used as a deep link on the same device or a QR code for cross device or both.
+   * The query params are `{ request_uri: string; encryption_key: string; }`
+   * The wallet will use the `request_uri to contact the intermediary server's `authorize` endpoint
+   * and pull down the {@link Web5ConnectAuthRequest} and use the `encryption_key` to decrypt it.
+   *
+   * @param uri - The URI returned by the web5 connect API to be passed to a provider.
+   */
+  onWalletUriReady: (uri: string) => void;
+
+  /**
+   * Function that must be provided to submit the pin entered by the user on the client.
+   * The pin is used to decrypt the {@link Web5ConnectAuthResponse} that was retrieved from the
+   * token endpoint by the client inside of web5 connect.
+   *
+   * @returns A promise that resolves to the PIN as a string.
+   */
+  validatePin: () => Promise<string>;
+};
+
+/** Used by the WalletConnect protocol to provision a Wallet for the exact permissions its needs */
+export type ConnectPermissionRequest = {
+  /**
+   * The definition of the protocol the permissions are being requested for.
+   * In the event that the protocol is not already installed, the wallet will install this given protocol definition.
+   */
+  protocolDefinition: DwnProtocolDefinition;
+
+  /** The scope of the permissions being requested for the given protocol */
+  permissionScopes: DwnPermissionScope[];
+};
+
+/** Convenience object passed in by users and normalized to the internally used {@link ConnectPermissionRequest}  */
+export type ConnectUserPermissionRequest = Omit<
+  ConnectPermissionRequest,
+  'permissionScopes'
+> & {
+  /**
+   * Used to create a {@link DwnPermissionScope} for each option provided in this param.
+   * If undefined defaults to requesting all permissions.
+   * `configure` is not included by default, as this gives the application a lot of control over the protocol.
+   */
+  permissions?: Permission[];
+};
+
+/** Shorthand for the types of permissions that can be requested. */
+type Permission =
+  | 'write'
+  | 'read'
+  | 'delete'
+  | 'query'
+  | 'subscribe'
+  | 'configure';
+
+/**
+ * Called by the DWA. In this workflow the wallet provisions a DID to the DWA.
+ * The DWA will have access to the data of the DID and be able to act as that DID.
  */
 async function initClient({
   displayName,
@@ -24,9 +112,19 @@ async function initClient({
   onWalletUriReady,
   validatePin,
 }: WalletConnectOptions) {
-  // ephemeral client did for ECDH, signing, verification
-  // TODO: use separate keys for ECDH vs. sign/verify. could maybe use secp256k1.
-  const clientDid = await DidJwk.create();
+  const normalizedPermissionRequests = permissionRequests.map(
+    ({ protocolDefinition, permissions }) =>
+      WalletConnect.createPermissionRequestForProtocol({
+        definition: protocolDefinition,
+        permissions,
+      })
+  );
+
+  // ephemeral did used for signing, verification
+  const clientSigningDid = await DidJwk.create();
+
+  // ephemeral did used for ECDH only
+  const clientEcdhDid = await DidJwk.create();
 
   // TODO: properly implement PKCE. this implementation is lacking server side validations and more.
   // https://github.com/TBD54566975/web5-js/issues/829
@@ -43,28 +141,30 @@ async function initClient({
 
   // build the PAR request
   const request = await Oidc.createAuthRequest({
-    client_id          : clientDid.uri,
+    client_id          : clientSigningDid.uri,
     scope              : 'openid did:jwk',
     redirect_uri       : callbackEndpoint,
-    // custom properties:
+    client_name        : displayName,
     // code_challenge        : codeChallengeBase64Url,
     // code_challenge_method : 'S256',
-    permissionRequests : permissionRequests,
-    displayName,
+    // custom properties:
+    permissionRequests : normalizedPermissionRequests,
   });
 
   // Sign the Request Object using the Client DID's signing key.
   const requestJwt = await Oidc.signJwt({
-    did  : clientDid,
+    did  : clientSigningDid,
     data : request,
   });
 
   if (!requestJwt) {
     throw new Error('Unable to sign requestObject');
   }
-  // Encrypt the Request Object JWT using the code challenge.
+
+  // Encrypt with symmetric randomBytes and tell counterparty about the future ecdh pub did kid
   const requestObjectJwe = await Oidc.encryptAuthRequest({
-    jwt: requestJwt,
+    jwt : requestJwt,
+    kid : clientEcdhDid.document.verificationMethod![0].id,
     encryptionKey,
   });
 
@@ -119,10 +219,12 @@ async function initClient({
 
     // get the pin from the user and use it as AAD to decrypt
     const pin = await validatePin();
-    const jwt = await Oidc.decryptAuthResponse(clientDid, jwe, pin);
+    const jwt = await Oidc.decryptWithPin(clientEcdhDid, jwe, pin);
     const verifiedAuthResponse = (await Oidc.verifyJwt({
       jwt,
     })) as Web5ConnectAuthResponse;
+
+    // TODO: export insertion point
 
     return {
       delegateGrants      : verifiedAuthResponse.delegateGrants,
@@ -133,88 +235,22 @@ async function initClient({
 }
 
 /**
- * Initiates the wallet connect process. Used when a client wants to obtain
- * a did from a provider.
+ * An internal utility that simplifies the API for permission requests by allowing
+ * users to pass simple strings (any of {@link Permission}) and will create the
+ * appropriate {@link DwnPermissionScope} for each string provided.
  */
-export type WalletConnectOptions = {
-  /** The user friendly name of the client/app to be displayed when prompting end-user with permission requests. */
-  displayName: string;
-
-  /** The URL of the intermediary server which relays messages between the client and provider. */
-  connectServerUrl: string;
-
-  /**
-   * The URI of the Provider (wallet).The `onWalletUriReady` will take this wallet
-   * uri and add a payload to it which will be used to obtain and decrypt from the `request_uri`.
-   * @example `web5://` or `http://localhost:3000/`.
-   */
-  walletUri: string;
-
-  /**
-   * The protocols of permissions requested, along with the definition and
-   * permission scopes for each protocol. The key is the protocol URL and
-   * the value is an object with the protocol definition and the permission scopes.
-   */
-  permissionRequests: ConnectPermissionRequest[];
-
-  /**
-   * The Web5 API provides a URI to the wallet based on the `walletUri` plus a query params payload valid for 5 minutes.
-   * The link can either be used as a deep link on the same device or a QR code for cross device or both.
-   * The query params are `{ request_uri: string; encryption_key: string; }`
-   * The wallet will use the `request_uri to contact the intermediary server's `authorize` endpoint
-   * and pull down the {@link Web5ConnectAuthRequest} and use the `encryption_key` to decrypt it.
-   *
-   * @param uri - The URI returned by the web5 connect API to be passed to a provider.
-   */
-  onWalletUriReady: (uri: string) => void;
-
-  /**
-   * Function that must be provided to submit the pin entered by the user on the client.
-   * The pin is used to decrypt the {@link Web5ConnectAuthResponse} that was retrieved from the
-   * token endpoint by the client inside of web5 connect.
-   *
-   * @returns A promise that resolves to the PIN as a string.
-   */
-  validatePin: () => Promise<string>;
-};
-
-/**
- * The protocols of permissions requested, along with the definition and permission scopes for each protocol.
- */
-export type ConnectPermissionRequest = {
-  /**
-   * The definition of the protocol the permissions are being requested for.
-   * In the event that the protocol is not already installed, the wallet will install this given protocol definition.
-   */
-  protocolDefinition: DwnProtocolDefinition;
-
-  /** The scope of the permissions being requested for the given protocol */
-  permissionScopes: DwnPermissionScope[];
-};
-
-/**
- * Shorthand for the types of permissions that can be requested.
- */
-export type Permission = 'write' | 'read' | 'delete' | 'query' | 'subscribe' | 'configure';
-
-/**
- * The options for creating a permission request for a given protocol.
- */
-export type ProtocolPermissionOptions = {
+function createPermissionRequestForProtocol({
+  definition,
+  permissions,
+}: {
   /** The protocol definition for the protocol being requested */
   definition: DwnProtocolDefinition;
 
-  /** The permissions being requested for the protocol */
-  permissions: Permission[];
-};
+  /** The permissions being requested for the protocol. Defaults to all. */
+  permissions?: Permission[];
+}) {
+  permissions ??= ['read', 'write', 'delete', 'query', 'subscribe'];
 
-/**
- * Creates a set of Dwn Permission Scopes to request for a given protocol.
- *
- * If no permissions are provided, the default is to request all relevant record permissions (write, read, delete, query, subscribe).
- * 'configure' is not included by default, as this gives the application a lot of control over the protocol.
- */
-function createPermissionRequestForProtocol({ definition, permissions }: ProtocolPermissionOptions): ConnectPermissionRequest {
   const requests: DwnPermissionScope[] = [];
 
   // Add the ability to query for the specific protocol
@@ -225,19 +261,23 @@ function createPermissionRequestForProtocol({ definition, permissions }: Protoco
   });
 
   // In order to enable sync, we must request permissions for `MessagesQuery`, `MessagesRead` and `MessagesSubscribe`
-  requests.push({
-    protocol  : definition.protocol,
-    interface : DwnInterfaceName.Messages,
-    method    : DwnMethodName.Read,
-  }, {
-    protocol  : definition.protocol,
-    interface : DwnInterfaceName.Messages,
-    method    : DwnMethodName.Query,
-  }, {
-    protocol  : definition.protocol,
-    interface : DwnInterfaceName.Messages,
-    method    : DwnMethodName.Subscribe,
-  });
+  requests.push(
+    {
+      protocol  : definition.protocol,
+      interface : DwnInterfaceName.Messages,
+      method    : DwnMethodName.Read,
+    },
+    {
+      protocol  : definition.protocol,
+      interface : DwnInterfaceName.Messages,
+      method    : DwnMethodName.Query,
+    },
+    {
+      protocol  : definition.protocol,
+      interface : DwnInterfaceName.Messages,
+      method    : DwnMethodName.Subscribe,
+    }
+  );
 
   // We also request any additional permissions the user has requested for this protocol
   for (const permission of permissions) {
@@ -293,4 +333,7 @@ function createPermissionRequestForProtocol({ definition, permissions }: Protoco
   };
 }
 
-export const WalletConnect = { initClient, createPermissionRequestForProtocol };
+export const WalletConnect = {
+  initClient,
+  createPermissionRequestForProtocol,
+};
