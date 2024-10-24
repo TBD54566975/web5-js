@@ -12,7 +12,13 @@ import {
 import { concatenateUrl } from './utils.js';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 import type { ConnectPermissionRequest } from './connect.js';
-import { DidDocument, DidJwk, DidResolutionResult, PortableDid, type BearerDid } from '@web5/dids';
+import {
+  DidDocument,
+  DidJwk,
+  DidResolutionResult,
+  PortableDid,
+  type BearerDid,
+} from '@web5/dids';
 import {
   DwnDataEncodedRecordsWriteMessage,
   DwnInterface,
@@ -291,7 +297,7 @@ async function createAuthRequest(
 async function encryptAuthRequest({
   jwt,
   encryptionKey,
-  kid
+  kid,
 }: {
   jwt: string;
   encryptionKey: Uint8Array;
@@ -302,7 +308,7 @@ async function encryptAuthRequest({
     cty : 'JWT',
     enc : 'XC20P',
     typ : 'JWT',
-    kid
+    kid,
   };
   const nonce = CryptoUtils.randomBytes(24);
   const additionalData = Convert.object(protectedHeader).toUint8Array();
@@ -438,7 +444,9 @@ const getAuthRequest = async (request_uri: string, encryption_key: string) => {
   })) as Web5ConnectAuthRequest;
 
   // get the pub DID that represents the client in ECDH and deriving a shared key
-  const header = Convert.base64Url(jwe.split('.')[0]).toObject() as JweHeaderParams;
+  const header = Convert.base64Url(
+    jwe.split('.')[0]
+  ).toObject() as JweHeaderParams;
 
   const clientEcdhDid = await DidJwk.resolve(header.kid!.split('#')[0]);
 
@@ -502,7 +510,9 @@ async function decryptWithPin(clientDid: BearerDid, jwe: string, pin: string) {
   const jweProviderEcdhDidKid = await DidJwk.resolve(header.kid!.split('#')[0]);
 
   if (!jweProviderEcdhDidKid.didDocument) {
-    throw new Error('Could not resolve provider\'s didd document for shared key derivation');
+    throw new Error(
+      'Could not resolve provider\'s didd document for shared key derivation'
+    );
   }
 
   // derive ECDH shared key using the provider's public key and our clientDid private key
@@ -638,7 +648,10 @@ function shouldUseDelegatePermission(scope: DwnPermissionScope): boolean {
   // In the future only methods that modify state will be delegated and the rest will be normal permissions
   if (isRecordPermissionScope(scope)) {
     return true;
-  } else if (scope.interface === DwnInterfaceName.Protocols && scope.method === DwnMethodName.Configure) {
+  } else if (
+    scope.interface === DwnInterfaceName.Protocols &&
+    scope.method === DwnMethodName.Configure
+  ) {
     // ProtocolConfigure messages are also delegated, as they modify state
     return true;
   }
@@ -675,7 +688,9 @@ async function createPermissionGrants(
     })
   );
 
-  logger.log(`Sending ${permissionGrants.length} permission grants to remote DWN...`);
+  logger.log(
+    `Sending ${permissionGrants.length} permission grants to remote DWN...`
+  );
   const messagePromises = permissionGrants.map(async (grant) => {
     // Quirk: we have to pull out encodedData out of the message the schema validator doesn't want it there
     const { encodedData, ...rawMessage } = grant.message;
@@ -718,7 +733,6 @@ async function prepareProtocol(
   agent: Web5Agent,
   protocolDefinition: DwnProtocolDefinition
 ): Promise<void> {
-
   const queryMessage = await agent.processDwnRequest({
     author        : selectedDid,
     messageType   : DwnInterface.ProtocolsQuery,
@@ -731,16 +745,22 @@ async function prepareProtocol(
     throw new Error(
       `Could not fetch protocol: ${queryMessage.reply.status.detail}`
     );
-  } else if (queryMessage.reply.entries === undefined || queryMessage.reply.entries.length === 0) {
-    logger.log(`Protocol does not exist, creating: ${protocolDefinition.protocol}`);
+  } else if (
+    queryMessage.reply.entries === undefined ||
+    queryMessage.reply.entries.length === 0
+  ) {
+    logger.log(
+      `Protocol does not exist, creating: ${protocolDefinition.protocol}`
+    );
 
     // send the protocol definition to the remote DWN first, if it passes we can process it locally
-    const { reply: sendReply, message: configureMessage } = await agent.sendDwnRequest({
-      author        : selectedDid,
-      target        : selectedDid,
-      messageType   : DwnInterface.ProtocolsConfigure,
-      messageParams : { definition: protocolDefinition },
-    });
+    const { reply: sendReply, message: configureMessage } =
+      await agent.sendDwnRequest({
+        author        : selectedDid,
+        target        : selectedDid,
+        messageType   : DwnInterface.ProtocolsConfigure,
+        messageParams : { definition: protocolDefinition },
+      });
 
     // check if the message was sent successfully, if the remote returns 409 the message may have come through already via sync
     if (sendReply.status.code !== 202 && sendReply.status.code !== 409) {
@@ -851,7 +871,9 @@ async function submitAuthResponse(
     });
 
     if (!clientEcdhDid.didDocument?.verificationMethod?.[0].id) {
-      throw new Error('Unable to resolve the encryption DID used by the client for ECDH');
+      throw new Error(
+        'Unable to resolve the encryption DID used by the client for ECDH'
+      );
     }
 
     const sharedKey = await Oidc.deriveSharedKey(

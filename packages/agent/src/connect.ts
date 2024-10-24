@@ -249,13 +249,7 @@ function createPermissionRequestForProtocol({
   /** The permissions being requested for the protocol. Defaults to all. */
   permissions?: Permission[];
 }) {
-  permissions ??= [
-    'read',
-    'write',
-    'delete',
-    'query',
-    'subscribe',
-  ];
+  permissions ??= ['read', 'write', 'delete', 'query', 'subscribe'];
 
   const requests: DwnPermissionScope[] = [];
 

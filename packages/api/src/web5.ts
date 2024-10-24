@@ -32,7 +32,7 @@ export type TechPreviewOptions = {
 export type DidCreateOptions = {
   /** Override default dwnEndpoints provided during DID creation. */
   dwnEndpoints?: string[];
-}
+};
 
 /** Optional overrides that can be provided when calling {@link Web5.connect}. */
 export type Web5ConnectOptions = {
@@ -126,13 +126,13 @@ export type Web5ConnectOptions = {
    * If registration fails, the `onFailure` callback will be called with the error.
    * If registration is successful, the `onSuccess` callback will be called.
    */
-  registration? : {
+  registration?: {
     /** Called when all of the DWN registrations are successful */
     onSuccess: () => void;
     /** Called when any of the DWN registrations fail */
     onFailure: (error: any) => void;
-  }
-}
+  };
+};
 
 /**
  * Represents the result of the Web5 connection process, including the Web5 instance,
@@ -241,20 +241,25 @@ export class Web5 {
         password = 'insecure-static-phrase';
         console.warn(
           '%cSECURITY WARNING:%c ' +
-          'You have not set a password, which defaults to a static, guessable value. ' +
-          'This significantly compromises the security of your data. ' +
-          'Please configure a secure, unique password.',
+            'You have not set a password, which defaults to a static, guessable value. ' +
+            'This significantly compromises the security of your data. ' +
+            'Please configure a secure, unique password.',
           'font-weight: bold; color: red;',
           'font-weight: normal; color: inherit;'
         );
       }
 
       // Use the specified DWN endpoints or the latest TBD hosted DWN
-      const serviceEndpointNodes = techPreview?.dwnEndpoints ?? didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
+      const serviceEndpointNodes = techPreview?.dwnEndpoints ??
+        didCreateOptions?.dwnEndpoints ?? ['https://dwn.tbddev.org/beta'];
 
       // Initialize, if necessary, and start the agent.
       if (await userAgent.firstLaunch()) {
-        recoveryPhrase = await userAgent.initialize({ password, recoveryPhrase, dwnEndpoints: serviceEndpointNodes });
+        recoveryPhrase = await userAgent.initialize({
+          password,
+          recoveryPhrase,
+          dwnEndpoints: serviceEndpointNodes,
+        });
       }
       await userAgent.start({ password });
 
@@ -263,8 +268,10 @@ export class Web5 {
       let identity: BearerIdentity;
       let connectedProtocols: string[] = [];
 
-      const isWalletConnect = walletConnectOptions && !walletConnectOptions.exported;
-      const isWalletExportedConnect = walletConnectOptions && walletConnectOptions.exported;
+      const isWalletConnect =
+        walletConnectOptions && !walletConnectOptions.exported;
+      const isWalletExportedConnect =
+        walletConnectOptions && walletConnectOptions.exported;
 
       if (connectedIdentity) {
         // TODO: In the future, implement a way to re-connect an already connected identity and apply additional grants/protocols
@@ -280,32 +287,41 @@ export class Web5 {
         registerSync = true;
 
         try {
-          const { delegatePortableDid, connectedDid, delegateGrants } = await WalletConnect.initClient(walletConnectOptions);
+          const { delegatePortableDid, connectedDid, delegateGrants } =
+            await WalletConnect.initClient(walletConnectOptions);
 
           // Import the delegated DID as an Identity in the User Agent.
           // Setting the connectedDID in the metadata applies a relationship between the signer identity and the one it is impersonating.
-          identity = await userAgent.identity.import({ portableIdentity: {
-            portableDid : delegatePortableDid,
-            metadata    : {
-              connectedDid,
-              name   : 'Default',
-              uri    : delegatePortableDid.uri,
-              tenant : agent.agentDid.uri,
-            }
-          }});
+          identity = await userAgent.identity.import({
+            portableIdentity: {
+              portableDid : delegatePortableDid,
+              metadata    : {
+                connectedDid,
+                name   : 'Default',
+                uri    : delegatePortableDid.uri,
+                tenant : agent.agentDid.uri,
+              },
+            },
+          });
 
           // Attempts to process the connected grants to be used by the delegateDID
           // If the process fails, we want to clean up the identity
           // the connected grants will return a de-duped array of protocol URIs that are used to register sync for those protocols
-          connectedProtocols = await this.processConnectedGrants({ agent, delegateDid: delegatePortableDid.uri, grants: delegateGrants });
-        } catch (error:any) {
+          connectedProtocols = await this.processConnectedGrants({
+            agent,
+            delegateDid : delegatePortableDid.uri,
+            grants      : delegateGrants,
+          });
+        } catch (error: any) {
           // clean up the DID and Identity if import fails and throw
           // TODO: Implement the ability to purge all of our messages as a tenant
           await this.cleanUpIdentity({ identity, userAgent });
           throw new Error(`Failed to connect to wallet: ${error.message}`);
         }
       } else if (isWalletExportedConnect) {
-        throw new Error('Exported connect will be implemented in a separate PR');
+        throw new Error(
+          'Exported connect will be implemented in a separate PR'
+        );
       } else {
         // No connected identity found and no connectOptions provided, use local Identities
         // Query the Agent's DWN tenant for identity records.
@@ -329,23 +345,22 @@ export class Web5 {
                   serviceEndpoint : serviceEndpointNodes,
                   enc             : '#enc',
                   sig             : '#sig',
-                }
+                },
               ],
               verificationMethods: [
                 {
                   algorithm : 'Ed25519',
                   id        : 'sig',
-                  purposes  : ['assertionMethod', 'authentication']
+                  purposes  : ['assertionMethod', 'authentication'],
                 },
                 {
                   algorithm : 'secp256k1',
                   id        : 'enc',
-                  purposes  : ['keyAgreement']
-                }
-              ]
-            }
+                  purposes  : ['keyAgreement'],
+                },
+              ],
+            },
           });
-
         } else {
           // If multiple identities are found, use the first one.
           // TODO: Implement selecting a connectedDid from multiple identities
@@ -356,7 +371,9 @@ export class Web5 {
       // If the stored identity has a connected DID, use it as the connected DID, otherwise use the identity's DID.
       connectedDid = identity.metadata.connectedDid ?? identity.did.uri;
       // If the stored identity has a connected DID, use the identity DID as the delegated DID, otherwise it is undefined.
-      delegateDid = identity.metadata.connectedDid ? identity.did.uri : undefined;
+      delegateDid = identity.metadata.connectedDid
+        ? identity.did.uri
+        : undefined;
       if (registration !== undefined) {
         // If a registration object is passed, we attempt to register the AgentDID and the ConnectedDID with the DWN endpoints provided
         try {
@@ -377,7 +394,7 @@ export class Web5 {
 
           // If no failures occurred, call the onSuccess callback
           registration.onSuccess();
-        } catch(error) {
+        } catch (error) {
           // for any failure, call the onFailure callback with the error
           registration.onFailure(error);
         }
@@ -393,8 +410,8 @@ export class Web5 {
             did     : connectedDid,
             options : {
               delegateDid,
-              protocols: connectedProtocols
-            }
+              protocols: connectedProtocols,
+            },
           });
 
           if (walletConnectOptions !== undefined) {
@@ -405,10 +422,9 @@ export class Web5 {
 
         // Enable sync using the specified interval or default.
         sync ??= '2m';
-        userAgent.sync.startSync({ interval: sync })
-          .catch((error: any) => {
-            console.error(`Sync failed: ${error}`);
-          });
+        userAgent.sync.startSync({ interval: sync }).catch((error: any) => {
+          console.error(`Sync failed: ${error}`);
+        });
       }
     }
 
@@ -421,9 +437,12 @@ export class Web5 {
    * Cleans up the DID, Keys and Identity. Primarily used by a failed WalletConnect import.
    * Does not throw on error, but logs to console.
    */
-  private static async cleanUpIdentity({ identity, userAgent }:{
-    identity: BearerIdentity,
-    userAgent: Web5UserAgent
+  private static async cleanUpIdentity({
+    identity,
+    userAgent,
+  }: {
+    identity: BearerIdentity;
+    userAgent: Web5UserAgent;
   }): Promise<void> {
     try {
       // Delete the DID and the Associated Keys
@@ -432,15 +451,19 @@ export class Web5 {
         tenant    : identity.metadata.tenant,
         deleteKey : true,
       });
-    } catch(error: any) {
-      console.error(`Failed to delete DID ${identity.did.uri}: ${error.message}`);
+    } catch (error: any) {
+      console.error(
+        `Failed to delete DID ${identity.did.uri}: ${error.message}`
+      );
     }
 
     try {
       // Delete the Identity
       await userAgent.identity.delete({ didUri: identity.did.uri });
-    } catch(error: any) {
-      console.error(`Failed to delete Identity ${identity.metadata.name}: ${error.message}`);
+    } catch (error: any) {
+      console.error(
+        `Failed to delete Identity ${identity.metadata.name}: ${error.message}`
+      );
     }
   }
 
@@ -448,22 +471,34 @@ export class Web5 {
    * Processes connected grants for a delegate DID.
    * Stores the grants as the DWN owner to be used later when impersonating the connected DID.
    */
-  static async processConnectedGrants({ grants, agent, delegateDid }: {
-    grants: DwnDataEncodedRecordsWriteMessage[],
-    agent: Web5Agent,
-    delegateDid: string,
+  static async processConnectedGrants({
+    grants,
+    agent,
+    delegateDid,
+  }: {
+    grants: DwnDataEncodedRecordsWriteMessage[];
+    agent: Web5Agent;
+    delegateDid: string;
   }): Promise<string[]> {
     const connectedProtocols = new Set<string>();
     for (const grantMessage of grants) {
       // use the delegateDid as the connectedDid of the grant as they do not yet support impersonation/delegation
-      const grant = await PermissionGrant.parse({ connectedDid: delegateDid, agent, message: grantMessage });
+      const grant = await PermissionGrant.parse({
+        connectedDid : delegateDid,
+        agent,
+        message      : grantMessage,
+      });
       // store the grant as the owner of the DWN, this will allow the delegateDid to use the grant when impersonating the connectedDid
       const { status } = await grant.store(true);
       if (status.code !== 202) {
-        throw new Error(`AgentDwnApi: Failed to process connected grant: ${status.detail}`);
+        throw new Error(
+          `AgentDwnApi: Failed to process connected grant: ${status.detail}`
+        );
       }
 
-      const protocol = (grant.scope as DwnMessagesPermissionScope | DwnRecordsPermissionScope).protocol;
+      const protocol = (
+        grant.scope as DwnMessagesPermissionScope | DwnRecordsPermissionScope
+      ).protocol;
       if (protocol) {
         connectedProtocols.add(protocol);
       }
