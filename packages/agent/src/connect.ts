@@ -138,7 +138,6 @@ async function initClient({
     baseURL  : connectServerUrl,
     endpoint : 'callback',
   });
-  console.log('after callback endpoint');
 
   // build the PAR request
   const request = await Oidc.createAuthRequest({
@@ -168,7 +167,6 @@ async function initClient({
     kid : clientEcdhDid.document.verificationMethod![0].id,
     encryptionKey,
   });
-  console.log('after requestobjecjtwe');
 
   // Convert the encrypted Request Object to URLSearchParams for form encoding.
   const formEncodedRequest = new URLSearchParams({
@@ -187,7 +185,6 @@ async function initClient({
       'Content-Type': 'application/x-www-form-urlencoded',
     },
   });
-  console.log('after par');
 
   if (!parResponse.ok) {
     throw new Error(`${parResponse.status}: ${parResponse.statusText}`);
@@ -204,7 +201,6 @@ async function initClient({
     'encryption_key',
     Convert.uint8Array(encryptionKey).toBase64Url()
   );
-  console.log('after generatedwalleturi');
 
   // call user's callback so they can send the URI to the wallet as they see fit
   onWalletUriReady(generatedWalletUri.toString());

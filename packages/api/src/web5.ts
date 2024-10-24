@@ -270,7 +270,6 @@ export class Web5 {
         // TODO: In the future, implement a way to re-connect an already connected identity and apply additional grants/protocols
         identity = connectedIdentity;
       } else if (isWalletConnect) {
-        console.log('IN walletConnect (non export) case');
         if (sync === 'off') {
           // Currently we require sync to be enabled when using WalletConnect
           // This is to ensure a connected app is not in a disjointed state from any other clients/app using the connectedDid
@@ -294,7 +293,6 @@ export class Web5 {
               tenant : agent.agentDid.uri,
             }
           }});
-          console.log('does have an identity');
 
           // Attempts to process the connected grants to be used by the delegateDID
           // If the process fails, we want to clean up the identity
@@ -309,7 +307,6 @@ export class Web5 {
       } else if (isWalletExportedConnect) {
         throw new Error('Exported connect will be implemented in a separate PR');
       } else {
-        console.log('IN else case');
         // No connected identity found and no connectOptions provided, use local Identities
         // Query the Agent's DWN tenant for identity records.
         const identities = await userAgent.identity.list();
