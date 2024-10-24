@@ -673,6 +673,7 @@ async function createPermissionGrants(
   const permissionsApi = new AgentPermissionsApi({ agent });
 
   // TODO: cleanup all grants if one fails by deleting them from the DWN: https://github.com/TBD54566975/web5-js/issues/849
+  logger.log(`Creating permission grants for ${scopes.length} scopes given...`);
   const permissionGrants = await Promise.all(
     scopes.map((scope) => {
       // check if the scope is a records permission scope, or a protocol configure scope, if so it should use a delegated permission.
@@ -864,7 +865,7 @@ async function submitAuthResponse(
       delegatePortableDid,
     });
 
-    // Sign using the signing key
+    logger.log('Signing auth response object...');
     const responseObjectJwt = await Oidc.signJwt({
       did  : providerSigningDid,
       data : responseObject,
@@ -881,6 +882,7 @@ async function submitAuthResponse(
       clientEcdhDid?.didDocument
     );
 
+    logger.log('Encrypting auth response object...');
     const encryptedResponse = Oidc.encryptWithPin({
       jwt           : responseObjectJwt,
       encryptionKey : sharedKey,
@@ -893,6 +895,9 @@ async function submitAuthResponse(
       state    : authRequest.state,
     }).toString();
 
+    logger.log(
+      `Sending auth response object to Web5 Connect server: ${authRequest.redirect_uri}`
+    );
     await fetch(authRequest.redirect_uri, {
       body    : formEncodedRequest,
       method  : 'POST',
