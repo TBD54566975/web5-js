@@ -511,7 +511,7 @@ async function decryptWithPin(clientDid: BearerDid, jwe: string, pin: string) {
 
   if (!jweProviderEcdhDidKid.didDocument) {
     throw new Error(
-      'Could not resolve provider\'s didd document for shared key derivation'
+      'Could not resolve provider\'s DID document for shared key derivation'
     );
   }
 
