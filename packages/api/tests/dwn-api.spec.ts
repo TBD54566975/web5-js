@@ -1735,6 +1735,7 @@ describe('DwnApi', () => {
           });
 
           expect(writeResult.status.code).to.equal(202);
+          expect(writeResult.status.ok).to.equal(true)
           expect(writeResult.status.detail).to.equal('Accepted');
           expect(writeResult.record).to.exist;
 
@@ -1862,6 +1863,7 @@ describe('DwnApi', () => {
 
         // should return both records
         expect(result.status.code).to.equal(200);
+        expect(result.status.ok).to.equal(true)
         expect(result.records).to.exist;
         expect(result.records!.length).to.equal(2);
 
@@ -1921,6 +1923,7 @@ describe('DwnApi', () => {
 
         // Verify the query returns a result.
         expect(result.status.code).to.equal(200);
+        expect(result.status.ok).to.equal(true)
         expect(result.records).to.exist;
         expect(result.records!.length).to.equal(1);
         expect(result.records![0].id).to.equal(record!.id);
@@ -1938,6 +1941,7 @@ describe('DwnApi', () => {
         });
         // Confirm that the record does not currently exist on Bob's DWN.
         expect(result.status.code).to.equal(200);
+        expect(result.status.ok).to.equal(true)
         expect(result.records).to.exist;
         expect(result.records!.length).to.equal(0);
       });
@@ -2017,6 +2021,7 @@ describe('DwnApi', () => {
           }
         });
         expect(status.code).to.equal(202);
+        expect(status.ok).to.equal(true)
         const { status: sendFooBarStatus } = await record.send(aliceDid.uri);
         expect(sendFooBarStatus.code).to.equal(202);
 
@@ -2053,6 +2058,7 @@ describe('DwnApi', () => {
 
         // should return both records
         expect(result.status.code).to.equal(200);
+        expect(result.status.ok).to.equal(true)
         expect(result.records).to.exist;
         expect(result.records!.length).to.equal(2);
 
@@ -2203,6 +2209,7 @@ describe('DwnApi', () => {
         });
 
         expect(writeResult.status.code).to.equal(202);
+        expect(writeResult.status.ok).to.equal(true)
         expect(writeResult.status.detail).to.equal('Accepted');
         expect(writeResult.record).to.exist;
 
@@ -2215,6 +2222,7 @@ describe('DwnApi', () => {
         });
 
         expect(result.status.code).to.equal(200);
+        expect(result.status.ok).to.equal(true)
         expect(result.record.id).to.equal(writeResult.record!.id);
       });
 

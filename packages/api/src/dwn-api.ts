@@ -615,6 +615,8 @@ export class DwnApi {
 
         const { reply: { status } } = agentResponse;
 
+        status.ok = (200 <= status.code && status.code <= 299);
+
         return { status };
       },
       /**
@@ -706,6 +708,8 @@ export class DwnApi {
           return record;
         });
 
+        status.ok = (200 <= status.code && status.code <= 299);
+
         return { records, status, cursor };
       },
 
@@ -766,6 +770,8 @@ export class DwnApi {
         }
 
         const { reply: { entry, status } } = agentResponse;
+
+        status.ok = (200 <= status.code && status.code <= 299);
 
         let record: Record;
         if (200 <= status.code && status.code <= 299) {
@@ -874,6 +880,8 @@ export class DwnApi {
         const reply = agentResponse.reply;
         const { status, subscription } = reply;
 
+        status.ok = (200 <= status.code && status.code <= 299);
+
         return { status, subscription };
       },
 
@@ -922,6 +930,8 @@ export class DwnApi {
         const agentResponse = await this.agent.processDwnRequest(dwnRequestParams);
 
         const { message: responseMessage, reply: { status } } = agentResponse;
+
+        status.ok = (status.code === 202);
 
         let record: Record;
         if (200 <= status.code && status.code <= 299) {
